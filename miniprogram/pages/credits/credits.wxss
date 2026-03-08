@@ -1,0 +1,29 @@
+.page { background: var(--color-bg-page); min-height: 100vh; }
+
+/* ── 总积分卡 ── */
+.total-card {
+  background: linear-gradient(135deg, #67C23A 0%, #4E9B2A 100%);
+  padding: 60rpx var(--space-lg) var(--space-xl);
+  text-align: center;
+}
+.total-label { display: block; font-size: var(--font-sm); color: rgba(255,255,255,0.8); }
+.total-num { display: block; font-size: 100rpx; font-weight: 700; color: #fff; margin: var(--space-sm) 0; }
+.reward-hints { display: flex; justify-content: center; gap: var(--space-lg); margin-top: var(--space-sm); }
+.hint-item { display: flex; align-items: center; gap: var(--space-xs); font-size: var(--font-xs); color: rgba(255,255,255,0.8); }
+.hint-credit { color: #fff; font-weight: 600; }
+
+/* ── 明细列表 ── */
+.list { background: var(--color-bg-card); margin: var(--space-md); border-radius: var(--radius-md); overflow: hidden; }
+.record-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-md); border-bottom: 1rpx solid var(--color-border);
+}
+.record-item:last-child { border: none; }
+.record-left { display: flex; align-items: center; gap: var(--space-md); flex: 1; }
+.record-icon { font-size: 40rpx; flex-shrink: 0; }
+.record-info { flex: 1; }
+.record-reason { font-size: var(--font-md); color: var(--color-text-primary); display: block; }
+.record-time { font-size: var(--font-xs); color: var(--color-text-placeholder); display: block; margin-top: 4rpx; }
+.record-amount { font-size: var(--font-lg); font-weight: 700; flex-shrink: 0; }
+.amount-in  { color: var(--color-primary); }
+.amount-out { color: var(--color-danger); }

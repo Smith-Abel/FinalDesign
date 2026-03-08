@@ -1,0 +1,88 @@
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-bg-page);
+}
+
+/* ── 消息列表 ── */
+.msg-list {
+  flex: 1;
+  padding: var(--space-md);
+  padding-bottom: 160rpx;  /* 预留输入栏空间 */
+}
+
+/* ── 消息行 ── */
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
+}
+.msg-row.mine { flex-direction: row-reverse; }
+
+/* ── 头像 ── */
+.avatar-sm { width: 64rpx; height: 64rpx; border-radius: 50%; flex-shrink: 0; }
+.avatar-sm-placeholder {
+  width: 64rpx; height: 64rpx; border-radius: 50%; flex-shrink: 0;
+  background: var(--color-primary-bg); display: flex; align-items: center;
+  justify-content: center; font-size: 26rpx; color: var(--color-primary); font-weight: 700;
+}
+.avatar-sm-placeholder.mine { background: #EBF5FF; color: #409EFF; }
+
+/* ── 气泡 ── */
+.bubble {
+  max-width: 68%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 24rpx;
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+.bubble-theirs {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-bottom-left-radius: 8rpx;
+  box-shadow: var(--shadow-card);
+}
+.bubble-mine {
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: 8rpx;
+}
+
+/* ── 底部输入栏 ── */
+.input-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: #fff;
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+  box-sizing: border-box;
+}
+.chat-input {
+  flex: 1;
+  height: 72rpx;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-md);
+  font-size: var(--font-md);
+  border: none;
+}
+.send-btn {
+  flex-shrink: 0;
+  height: 72rpx;
+  padding: 0 var(--space-lg);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-md);
+  font-weight: 600;
+  border: none;
+  line-height: 72rpx;
+}
+.send-btn::after { border: none; }
+.send-disabled { background: #C0C4CC !important; }
+.placeholder { color: var(--color-text-placeholder) !important; }

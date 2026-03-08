@@ -1,0 +1,133 @@
+page {
+  /* ── 主题色 ── */
+  --color-primary:       #67C23A;
+  --color-primary-light: #85CE61;
+  --color-primary-dark:  #4E9B2A;
+  --color-primary-bg:    #F0F9EB;
+
+  /* ── 功能色 ── */
+  --color-danger:   #F56C6C;
+  --color-warning:  #E6A23C;
+  --color-info:     #909399;
+  --color-success:  #67C23A;
+
+  /* ── 文字色 ── */
+  --color-text-primary:     #303133;
+  --color-text-secondary:   #606266;
+  --color-text-placeholder: #C0C4CC;
+  --color-text-inverse:     #FFFFFF;
+
+  /* ── 边框 & 背景 ── */
+  --color-border:   #DCDFE6;
+  --color-bg-page:  #F5F7FA;
+  --color-bg-card:  #FFFFFF;
+
+  /* ── 字号 ── */
+  --font-xs:    22rpx;
+  --font-sm:    26rpx;
+  --font-md:    28rpx;
+  --font-lg:    32rpx;
+  --font-xl:    36rpx;
+  --font-title: 40rpx;
+
+  /* ── 圆角 ── */
+  --radius-sm:   8rpx;
+  --radius-md:   16rpx;
+  --radius-lg:   24rpx;
+  --radius-full: 9999rpx;
+
+  /* ── 间距 ── */
+  --space-xs: 8rpx;
+  --space-sm: 16rpx;
+  --space-md: 24rpx;
+  --space-lg: 32rpx;
+  --space-xl: 48rpx;
+
+  /* ── 阴影 ── */
+  --shadow-card:  0 2rpx 12rpx rgba(0,0,0,0.08);
+  --shadow-float: 0 4rpx 20rpx rgba(103,194,58,0.35);
+
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: var(--font-md);
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  box-sizing: border-box;
+}
+
+/* ── 安全区工具类 ── */
+.safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── 通用卡片 ── */
+.card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-md);
+}
+
+/* ── 主按钮 ── */
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-full);
+  border: none;
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+.btn-primary::after { border: none; }
+
+/* ── 危险按钮 ── */
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+  border-radius: var(--radius-full);
+  border: none;
+}
+.btn-danger::after { border: none; }
+
+/* ── 禁用按钮 ── */
+.btn-disabled {
+  background: #C0C4CC !important;
+  color: #fff !important;
+  opacity: 0.7;
+}
+
+/* ── 空数据状态 ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+.empty-state image {
+  width: 180rpx;
+  height: 180rpx;
+  opacity: 0.5;
+}
+.empty-state text {
+  margin-top: var(--space-md);
+  font-size: var(--font-sm);
+  color: var(--color-text-placeholder);
+}
+
+/* ── 状态徽章 ── */
+.badge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+}
+.badge-open     { background: var(--color-primary-bg); color: var(--color-primary); }
+.badge-progress { background: #EBF5FF; color: #409EFF; }
+.badge-pending  { background: #FDF6EC; color: var(--color-warning); }
+.badge-done     { background: #F4F4F5; color: var(--color-info); }
+.badge-cancel   { background: #FEF0F0; color: var(--color-danger); }
+
+/* ── 分类标签 ── */
+.cat-study { background: #EBF5FF; color: #409EFF; }
+.cat-trade { background: #FDF6EC; color: #E6A23C; }
+.cat-help  { background: var(--color-primary-bg); color: var(--color-primary); }

@@ -1,0 +1,125 @@
+<view class="page" wx:if="{{task}}">
+
+  <!-- 任务头部 -->
+  <view class="header card">
+    <view class="header-top">
+      <text class="badge {{task.catClass}}">{{task.catLabel}}</text>
+      <text class="badge {{task.statusClass}}">{{task.statusLabel}}</text>
+    </view>
+    <text class="title">{{task.title}}</text>
+    <view class="meta">
+      <text class="meta-item">🎯 悬赏 {{task.reward_amount}} 积分</text>
+      <text class="meta-item">🕐 {{task.timeAgo}}</text>
+    </view>
+    <view class="location" wx:if="{{task.location_name}}">
+      <text>📍 {{task.location_name}}</text>
+    </view>
+  </view>
+
+  <!-- 发布者信息 -->
+  <view class="user-card card">
+    <text class="section-title">发布者</text>
+    <view class="user-row">
+      <view class="avatar-wrap">
+        <image wx:if="{{task.publisher.avatar}}" src="{{task.publisher.avatar}}" class="avatar" />
+        <view wx:else class="avatar-placeholder">
+          <text>{{task.publisher.username[0]}}</text>
+        </view>
+      </view>
+      <view class="user-info">
+        <text class="username">{{task.publisher.username}}</text>
+        <text class="college" wx:if="{{task.publisher.college}}">{{task.publisher.college}}</text>
+      </view>
+      <view class="credit-badge">
+        <text class="credit-num">{{task.publisher.credit_score}}</text>
+        <text class="credit-label">积分</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 任务内容 -->
+  <view class="content-card card">
+    <text class="section-title">任务详情</text>
+    <text class="content-text">{{task.content}}</text>
+    
+    <!-- 任务图片 -->
+    <view class="task-images" wx:if="{{task.images && task.images.length > 0}}">
+      <image 
+        wx:for="{{task.images}}" 
+        wx:key="*this" 
+        src="{{item}}" 
+        class="detail-img" 
+        mode="widthFix"
+        bindtap="previewTaskImage"
+        data-url="{{item}}"
+      />
+    </view>
+
+    <view class="tags" wx:if="{{task.tags}}">
+      <text class="tag" wx:for="{{task.tagList}}" wx:key="*this">{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 接单者信息（进行中时显示） -->
+  <view class="user-card card" wx:if="{{task.worker && task.status !== 'OPEN'}}">
+    <text class="section-title">接单者</text>
+    <view class="user-row">
+      <view class="avatar-wrap">
+        <image wx:if="{{task.worker.avatar}}" src="{{task.worker.avatar}}" class="avatar" />
+        <view wx:else class="avatar-placeholder worker">
+          <text>{{task.worker.username[0]}}</text>
+        </view>
+      </view>
+      <view class="user-info">
+        <text class="username">{{task.worker.username}}</text>
+        <text class="college" wx:if="{{task.worker.college}}">{{task.worker.college}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏（固定 + 安全区） -->
+  <view class="action-bar safe-area-bottom" wx:if="{{actionType !== 'none'}}">
+
+    <!-- 陌生人：接单 -->
+    <block wx:if="{{actionType === 'accept'}}">
+      <button
+        class="btn-primary action-btn {{isLoading ? 'btn-disabled' : ''}}"
+        loading="{{isLoading}}"
+        disabled="{{isLoading}}"
+        bindtap="handleAccept"
+      >接单</button>
+    </block>
+
+    <!-- 发布者：确认完成 + 取消 -->
+    <block wx:if="{{actionType === 'complete_cancel'}}">
+      <button class="btn-danger action-btn half {{isLoading ? 'btn-disabled' : ''}}"
+        disabled="{{isLoading}}" bindtap="handleCancel">取消任务</button>
+      <button class="btn-primary action-btn half {{isLoading ? 'btn-disabled' : ''}}"
+        loading="{{isLoading}}" disabled="{{isLoading}}" bindtap="handleComplete">确认完成</button>
+    </block>
+
+    <!-- 接单者：等待中 -->
+    <block wx:if="{{actionType === 'waiting'}}">
+      <view class="waiting-tip">⏳ 等待发布者确认完成</view>
+    </block>
+
+    <!-- 聊天按钮（任务参与者可见） -->
+    <button
+      wx:if="{{actionType === 'complete_cancel' || actionType === 'waiting'}}"
+      class="btn-chat"
+      bindtap="goToChat"
+    >💬 进入聊天</button>
+
+  </view>
+
+  <!-- 底部占位（避免内容被 action-bar 遮挡） -->
+  <view class="action-placeholder" wx:if="{{actionType !== 'none'}}"></view>
+
+</view>
+
+<!-- 加载骨架 -->
+<view class="skeleton-wrap" wx:else>
+  <view class="skeleton-block"></view>
+  <view class="skeleton-block short"></view>
+  <view class="skeleton-block"></view>
+</view>

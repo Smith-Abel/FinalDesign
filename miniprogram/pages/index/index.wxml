@@ -1,0 +1,102 @@
+<view class="page">
+
+  <!-- 分类 Tab -->
+  <view class="tab-bar">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'tab-active' : ''}}"
+      bindtap="onTabChange"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 搜索与筛选控制栏 -->
+  <view class="control-bar">
+    <!-- 搜索框 -->
+    <view class="search-container">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input 
+          class="search-input" 
+          placeholder="搜索任务标题、内容、标签" 
+          value="{{searchInput}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+          confirm-type="search"
+          placeholder-style="color: #A0A5AF;"
+        />
+      </view>
+      <view class="search-action" bindtap="onSearchConfirm">搜索</view>
+    </view>
+
+    <!-- 排序操作 -->
+    <view class="sort-bar">
+      <view class="sort-item {{sortType === '-created_at' ? 'sort-active' : ''}}" bindtap="onSortChange" data-type="-created_at">
+        <text>最新发布</text>
+      </view>
+      <view class="sort-item {{sortType === '-reward_amount' ? 'sort-active' : ''}}" bindtap="onSortChange" data-type="-reward_amount">
+        <text>悬赏最高</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 任务瀑布流列表 -->
+  <scroll-view
+    class="waterfall-scroll"
+    scroll-y
+    bindscrolltolower="onLoadMore"
+    lower-threshold="100"
+  >
+    <view class="waterfall-container">
+      <view
+        wx:for="{{tasks}}"
+        wx:key="id"
+        class="waterfall-card"
+        bindtap="goToDetail"
+        data-id="{{item.id}}"
+      >
+        <!-- 封面图 -->
+        <image wx:if="{{item.cover_image}}" src="{{item.cover_image}}" class="card-cover" mode="widthFix" />
+        
+        <!-- 任务内容区 -->
+        <view class="card-content">
+          <view class="card-header">
+            <text class="badge {{item.catClass}}">{{item.catLabel}}</text>
+            <text class="badge {{item.statusClass}}" wx:if="{{item.status != 'OPEN'}}">{{item.statusLabel}}</text>
+          </view>
+          
+          <text class="card-title">{{item.title}}</text>
+          
+          <view class="card-meta">
+            <text class="reward" wx:if="{{item.reward_amount > 0}}">¥{{item.reward_amount}}</text>
+            <text class="reward no-reward" wx:else>无偿</text>
+          </view>
+          
+          <view class="card-footer">
+            <view class="publisher-info">
+              <image class="publisher-avatar" src="{{item.publisher_avatar || '/images/default-avatar.png'}}" />
+              <text class="publisher-name">{{item.publisher_name}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!isLoading && tasks.length === 0}}">
+      <view class="empty-text">暂无发现相关任务</view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{isLoadingMore}}">
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+    </view>
+    <view class="no-more" wx:if="{{!hasMore && tasks.length > 0}}">没有更多了</view>
+  </scroll-view>
+
+</view>

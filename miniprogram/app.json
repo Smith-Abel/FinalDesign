@@ -1,0 +1,46 @@
+{
+    "pages": [
+        "pages/login/login",
+        "pages/index/index",
+        "pages/task-detail/task-detail",
+        "pages/publish/publish",
+        "pages/chat/chat",
+        "pages/profile/profile",
+        "pages/credits/credits",
+        "pages/my-tasks/my-tasks"
+    ],
+    "tabBar": {
+        "color": "#606266",
+        "selectedColor": "#67C23A",
+        "backgroundColor": "#FFFFFF",
+        "borderStyle": "white",
+        "list": [
+            {
+                "pagePath": "pages/index/index",
+                "text": "广场",
+                "iconPath": "images/tab/home.png",
+                "selectedIconPath": "images/tab/home-active.png"
+            },
+            {
+                "pagePath": "pages/publish/publish",
+                "text": "发布",
+                "iconPath": "images/tab/add.png",
+                "selectedIconPath": "images/tab/add-active.png"
+            },
+            {
+                "pagePath": "pages/profile/profile",
+                "text": "我的",
+                "iconPath": "images/tab/user.png",
+                "selectedIconPath": "images/tab/user-active.png"
+            }
+        ]
+    },
+    "window": {
+        "backgroundTextStyle": "light",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTitleText": "校园互助",
+        "navigationBarTextStyle": "black"
+    },
+    "style": "v2",
+    "sitemapLocation": "sitemap.json"
+}

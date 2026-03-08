@@ -1,0 +1,120 @@
+<view class="page">
+  <scroll-view scroll-y class="form-scroll">
+
+    <!-- 分类选择 -->
+    <view class="form-section">
+      <text class="label">任务分类 <text class="required">*</text></text>
+      <view class="cat-picker">
+        <view
+          wx:for="{{categories}}"
+          wx:key="key"
+          class="cat-option {{form.category === item.key ? 'cat-selected' : ''}}"
+          bindtap="onCatSelect"
+          data-key="{{item.key}}"
+        >{{item.label}}</view>
+      </view>
+    </view>
+
+    <!-- 标题 -->
+    <view class="form-section">
+      <text class="label">任务标题 <text class="required">*</text></text>
+      <input
+        class="input"
+        placeholder="一句话描述你的需求"
+        placeholder-class="placeholder"
+        maxlength="50"
+        value="{{form.title}}"
+        bindinput="onInput"
+        data-field="title"
+      />
+      <text class="count">{{form.title.length}}/50</text>
+    </view>
+
+    <!-- 详情 -->
+    <view class="form-section">
+      <text class="label">详细描述 <text class="required">*</text></text>
+      <textarea
+        class="textarea"
+        placeholder="详细描述你的需求，越详细越容易被接单"
+        placeholder-class="placeholder"
+        maxlength="500"
+        value="{{form.content}}"
+        bindinput="onInput"
+        data-field="content"
+        auto-height
+      />
+      <text class="count">{{form.content.length}}/500</text>
+    </view>
+
+    <!-- 图片上传 -->
+    <view class="form-section">
+      <text class="label">图片（可选，最多3张）</text>
+      <view class="image-uploader">
+        <block wx:for="{{form.images}}" wx:key="*this">
+          <view class="image-wrap">
+            <image src="{{item}}" class="uploaded-img" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" />
+            <view class="delete-btn" bindtap="removeImage" data-index="{{index}}">×</view>
+          </view>
+        </block>
+        <view class="upload-btn" bindtap="chooseImage" wx:if="{{form.images.length < 3}}">
+          <text class="upload-icon">📷</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view class="form-section">
+      <text class="label">标签（可选）</text>
+      <input
+        class="input"
+        placeholder="多个标签用逗号分隔，如：急,宿舍,代购"
+        placeholder-class="placeholder"
+        value="{{form.tags}}"
+        bindinput="onInput"
+        data-field="tags"
+      />
+    </view>
+
+    <!-- 悬赏积分 -->
+    <view class="form-section">
+      <text class="label">悬赏积分</text>
+      <view class="input-with-unit">
+        <input
+          class="input reward-input"
+          type="digit"
+          placeholder="0"
+          placeholder-class="placeholder"
+          value="{{form.reward_amount}}"
+          bindinput="onInput"
+          data-field="reward_amount"
+        />
+        <text class="unit">积分</text>
+      </view>
+      <text class="hint">当前余额：{{myCredits}} 积分</text>
+    </view>
+
+    <!-- 地理位置 -->
+    <view class="form-section">
+      <text class="label">任务地点（可选）</text>
+      <view class="location-btn" bindtap="pickLocation">
+        <text wx:if="{{!form.location_name}}">📍 选择任务地点</text>
+        <text wx:else class="loc-selected">📍 {{form.location_name}}</text>
+      </view>
+    </view>
+
+    <view class="placeholder-bottom"></view>
+  </scroll-view>
+
+  <!-- 底部提交按钮（固定 + 安全区） -->
+  <view class="submit-bar safe-area-bottom">
+    <button
+      class="btn-primary submit-btn {{!canSubmit || isLoading ? 'btn-disabled' : ''}}"
+      disabled="{{!canSubmit || isLoading}}"
+      loading="{{isLoading}}"
+      bindtap="handleSubmit"
+    >
+      {{isLoading ? '发布中...' : '发布任务'}}
+    </button>
+  </view>
+
+</view>

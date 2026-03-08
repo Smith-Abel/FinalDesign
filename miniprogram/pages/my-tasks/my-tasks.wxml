@@ -1,0 +1,133 @@
+<page>
+  <!-- 状态筛选 Tab -->
+  <view class="tab-bar">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabChange"
+    >{{item.label}}</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{isLoading}}" class="loading-wrap">
+    <view class="loading-dot"></view>
+    <text class="loading-text">加载中…</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{tasks.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无发布的任务</text>
+    <view class="empty-hint">去「发布」Tab 创建你的第一个任务吧</view>
+  </view>
+
+  <!-- 任务列表 -->
+  <scroll-view wx:else scroll-y class="task-list" enable-flex>
+    <view
+      wx:for="{{tasks}}"
+      wx:key="id"
+      class="task-card"
+      data-id="{{item.id}}"
+      bindtap="goToDetail"
+    >
+      <!-- 标题行 -->
+      <view class="card-header">
+        <text class="task-title">{{item.title}}</text>
+        <text class="{{item.statusClass}}">{{item.statusLabel}}</text>
+      </view>
+
+      <!-- 内容预览 -->
+      <text class="task-content">{{item.content}}</text>
+
+      <!-- 底部信息行 -->
+      <view class="card-footer">
+        <view class="meta-group">
+          <text wx:if="{{item.reward_amount > 0}}" class="reward">🎖 {{item.reward_amount}} 积分</text>
+          <text wx:else class="reward no-reward">无悬赏</text>
+          <text wx:if="{{item.worker}}" class="worker-info">👤 接单: {{item.worker.username}}</text>
+        </view>
+        <!-- 操作按钮（阻止冒泡） -->
+        <view class="action-group" catchtap="noop">
+          <button
+            wx:if="{{item.canEdit}}"
+            class="btn-edit"
+            data-id="{{item.id}}"
+            bindtap="openEdit"
+            size="mini"
+          >编辑</button>
+          <button
+            wx:if="{{item.canCancel}}"
+            class="btn-cancel"
+            data-id="{{item.id}}"
+            bindtap="handleCancel"
+            size="mini"
+          >取消</button>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 编辑弹窗 -->
+  <view wx:if="{{showEditModal}}" class="modal-mask" bindtap="closeEdit">
+    <view class="modal-box" catchtap="noop">
+      <view class="modal-title">✏️ 修改任务</view>
+
+      <view class="form-item">
+        <text class="form-label">标题</text>
+        <input
+          class="form-input"
+          value="{{editForm.title}}"
+          data-field="title"
+          bindinput="onEditInput"
+          placeholder="任务标题"
+          maxlength="100"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">内容</text>
+        <textarea
+          class="form-textarea"
+          value="{{editForm.content}}"
+          data-field="content"
+          bindinput="onEditInput"
+          placeholder="详细描述任务内容"
+          maxlength="500"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">标签</text>
+        <input
+          class="form-input"
+          value="{{editForm.tags}}"
+          data-field="tags"
+          bindinput="onEditInput"
+          placeholder="可选，如：紧急 图书馆"
+          maxlength="50"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">悬赏积分</text>
+        <input
+          class="form-input"
+          value="{{editForm.reward_amount}}"
+          data-field="reward_amount"
+          bindinput="onEditInput"
+          type="digit"
+          placeholder="0"
+        />
+      </view>
+
+      <view class="modal-actions">
+        <button class="btn-modal-cancel" bindtap="closeEdit">取消</button>
+        <button class="btn-modal-save {{isSaving ? 'disabled' : ''}}" bindtap="handleSaveEdit" disabled="{{isSaving}}">
+          {{isSaving ? '保存中…' : '保存修改'}}
+        </button>
+      </view>
+    </view>
+  </view>
+</page>

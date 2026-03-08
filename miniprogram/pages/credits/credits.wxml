@@ -1,0 +1,43 @@
+<view class="page">
+
+  <!-- 总积分卡 -->
+  <view class="total-card">
+    <text class="total-label">我的积分</text>
+    <text class="total-num">{{totalCredits}}</text>
+    <view class="reward-hints">
+      <view class="hint-item" wx:if="{{!profileRewarded}}">
+        <text>完善资料</text><text class="hint-credit">+15</text>
+      </view>
+      <view class="hint-item" wx:if="{{!firstHelpRewarded}}">
+        <text>首次接单</text><text class="hint-credit">+10</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 明细列表 -->
+  <view class="list">
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!isLoading && records.length === 0}}">
+      <image src="/images/empty.png" />
+      <text>暂无积分记录</text>
+    </view>
+
+    <view
+      wx:for="{{records}}"
+      wx:key="id"
+      class="record-item"
+    >
+      <view class="record-left">
+        <text class="record-icon">{{item.icon}}</text>
+        <view class="record-info">
+          <text class="record-reason">{{item.reason}}</text>
+          <text class="record-time">{{item.timeStr}}</text>
+        </view>
+      </view>
+      <text class="record-amount {{item.change_amount > 0 ? 'amount-in' : 'amount-out'}}">
+        {{item.change_amount > 0 ? '+' : ''}}{{item.change_amount}}
+      </text>
+    </view>
+  </view>
+
+</view>

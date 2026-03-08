@@ -1,0 +1,601 @@
+import io
+import time
+import requests
+import qrcode
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.http import HttpResponse
+from rest_framework import generics, status, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Q
+
+from .models import User, Task, TaskStatus, Message, CreditDetail
+from .serializers import (
+    UserSerializer,
+    TaskListSerializer,
+    TaskDetailSerializer,
+    TaskCreateSerializer,
+    TaskUpdateSerializer,
+    MessageSerializer,
+    CreditDetailSerializer,
+)
+from . import services as credit_service
+
+
+def _get_tokens_for_user(user):
+    """为指定用户生成 JWT access + refresh token，返回 dict"""
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
+# ═══════════════════ 认证模块 ═══════════════════
+
+class WxLoginView(APIView):
+    """
+    POST /api/auth/wx-login/
+    接收前端传来的微信临时 code，换取 openid，
+    首次登录自动创建用户账号（openid 即唯一身份），
+    返回 JWT token 供后续请求鉴权。
+    不需要携带 token（AllowAny）。
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        code = request.data.get('code')
+        if not code:
+            return Response({'detail': '缺少 code 参数'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 调用微信 code2session 接口换取 openid
+        wx_url = 'https://api.weixin.qq.com/sns/jscode2session'
+        resp = requests.get(wx_url, params={
+            'appid': settings.WX_APPID,
+            'secret': settings.WX_SECRET,
+            'js_code': code,
+            'grant_type': 'authorization_code',
+        }, timeout=5)
+        wx_data = resp.json()
+
+        if 'errcode' in wx_data and wx_data['errcode'] != 0:
+            return Response(
+                {'detail': f"微信接口错误: {wx_data.get('errmsg')}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        openid = wx_data.get('openid')
+
+        # 根据 openid 查找或创建用户
+        user, created = User.objects.get_or_create(
+            openid=openid,
+            defaults={'username': f'wx_{openid[:16]}'},  # 默认用户名，后续可修改
+        )
+
+        # 新用户首次注册：发放随机初始积分（50~100）
+        register_bonus = None
+        if created:
+            register_bonus = credit_service.grant_register_bonus(user)
+
+        tokens = _get_tokens_for_user(user)
+        return Response({
+            'is_new_user': created,
+            'register_bonus': register_bonus,
+            'token': tokens,
+            'user': UserSerializer(user).data,
+        })
+
+
+class AccountLoginView(APIView):
+    """
+    POST /api/auth/login/
+    账号密码登录（username 也可传 student_id），
+    不需要携带 token（AllowAny）。
+    返回格式与 wx-login 保持一致，便于前端统一处理。
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.contrib.auth import authenticate
+        username = request.data.get('username', '').strip()
+        password = request.data.get('password', '')
+
+        if not username or not password:
+            return Response({'detail': '用户名和密码不能为空'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 支持用 student_id 当账号登录：先查找对应的 username
+        user = None
+        if User.objects.filter(student_id=username).exists():
+            user_obj = User.objects.get(student_id=username)
+            user = authenticate(request, username=user_obj.username, password=password)
+        else:
+            user = authenticate(request, username=username, password=password)
+
+        if user is None:
+            return Response({'detail': '用户名或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        tokens = _get_tokens_for_user(user)
+        return Response({
+            'is_new_user': False,
+            'register_bonus': None,
+            'token': tokens,
+            'user': UserSerializer(user).data,
+        })
+
+
+class RegisterView(APIView):
+    """
+    POST /api/auth/register/
+    账号注册（用户名+密码，学号选填）。
+    注册成功后自动发放初始积分并返回 JWT token，
+    和微信首次注册的体验保持一致。
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username', '').strip()
+        password = request.data.get('password', '')
+        password2 = request.data.get('password2', '')
+        student_id = request.data.get('student_id', '').strip()
+
+        # 基础校验
+        if not username or len(username) < 2:
+            return Response({'detail': '用户名至少2个字符'}, status=status.HTTP_400_BAD_REQUEST)
+        if not password or len(password) < 6:
+            return Response({'detail': '密码至少6位'}, status=status.HTTP_400_BAD_REQUEST)
+        if password != password2:
+            return Response({'detail': '两次密码不一致'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': '该用户名已被注册'}, status=status.HTTP_400_BAD_REQUEST)
+        if student_id and User.objects.filter(student_id=student_id).exists():
+            return Response({'detail': '该学号已被绑定'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建用户（openid 留空，password 走 Django 哈希）
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            student_id=student_id or None,
+        )
+        # 发放注册初始积分
+        register_bonus = credit_service.grant_register_bonus(user)
+
+        tokens = _get_tokens_for_user(user)
+        return Response({
+            'is_new_user': True,
+            'register_bonus': register_bonus,
+            'token': tokens,
+            'user': UserSerializer(user).data,
+        }, status=status.HTTP_201_CREATED)
+
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """
+    GET  /api/auth/profile/ → 获取当前登录用户的个人信息
+    PATCH /api/auth/profile/ → 更新个人信息，更新后自动检测资料完善奖励
+    """
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        # 直接从 JWT 中解析的 request.user 返回，无需 pk
+        return self.request.user
+
+    def partial_update(self, request, *args, **kwargs):
+        # 先执行正常的字段更新
+        response = super().partial_update(request, *args, **kwargs)
+        # 更新完成后检测是否触发资料完善奖励
+        # 此时 request.user 的字段已通过 serializer 保存，需重新从 DB 读取
+        user = self.get_object()
+        credit_service.grant_profile_bonus(user)
+        # 刷新序列化数据（credit_score 可能已变化）
+        response.data = UserSerializer(user).data
+        return response
+
+    # 禁用 PUT，只允许 PATCH 局部更新
+    http_method_names = ['get', 'patch', 'head', 'options']
+
+
+# ═══════════════════ 任务模块 ═══════════════════
+
+class TaskListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /api/tasks/           → 获取任务列表，支持 ?category= 和 ?status= 过滤
+    POST /api/tasks/           → 发布新任务，publisher 自动设置为当前用户
+    """
+
+    def get_queryset(self):
+        from django.db.models import Q
+        qs = Task.objects.select_related('publisher')
+        
+        category = self.request.query_params.get('category')
+        task_status = self.request.query_params.get('status')
+        search_query = self.request.query_params.get('search')
+        ordering = self.request.query_params.get('ordering', '-created_at')
+
+        if category:
+            qs = qs.filter(category=category)
+        if task_status:
+            qs = qs.filter(status=task_status)
+        else:
+            qs = qs.exclude(status__in=[TaskStatus.CANCELLED, TaskStatus.COMPLETED])
+            
+        if search_query:
+            qs = qs.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query) | Q(tags__icontains=search_query))
+            
+        return qs.order_by(ordering)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return TaskCreateSerializer
+        return TaskListSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        title = self.request.data.get('title', '新任务')
+
+        # 检查积分余额是否足够支付发布手续费（5分）
+        if not credit_service.check_credits_sufficient(user, credit_service.CREDIT_PUBLISH_FEE):
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                f'积分不足，发布任务需要 {credit_service.CREDIT_PUBLISH_FEE} 积分手续费，'
+                f'当前余额 {user.credit_score} 分'
+            )
+
+        task = serializer.save(publisher=user)
+        # 原子性扣除发布手续费
+        credit_service.deduct_publish_fee(user, task.title)
+
+
+class TaskDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/tasks/{id}/ → 获取任务详情（含发布者、接单者的完整信息）
+    """
+    queryset = Task.objects.select_related('publisher', 'worker')
+    serializer_class = TaskDetailSerializer
+
+
+class TaskAcceptView(APIView):
+    """
+    POST /api/tasks/{id}/accept/ → 接单
+    - 只有状态为 OPEN 的任务可以接单
+    - 发布者自己不能接自己的任务
+    - 发布者必须拥有足够将支付钟赏的积分
+    """
+
+    def post(self, request, pk):
+        try:
+            task = Task.objects.get(pk=pk)
+        except Task.DoesNotExist:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if task.status != TaskStatus.OPEN:
+            return Response({'detail': '该任务当前不可接单'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if task.publisher == request.user:
+            return Response({'detail': '不能接自己发布的任务'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 如果任务有悬赏，必须确保发布者积分足够（防止接单后无法支付）
+        reward = int(task.reward_amount)
+        if not credit_service.check_credits_sufficient(task.publisher, reward):
+            return Response(
+                {'detail': f'发布者积分不足，无法支付悬赏 {reward} 分'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        task.worker = request.user
+        task.status = TaskStatus.IN_PROGRESS
+        task.save()
+        return Response({'detail': '接单成功', 'task': TaskDetailSerializer(task).data})
+
+
+class TaskCompleteView(APIView):
+    """
+    POST /api/tasks/{id}/complete/ → 发布者确认任务完成
+    - 只有状态为 IN_PROGRESS 或 PENDING_CONFIRM 时可操作
+    - 只有发布者可以确认
+    """
+
+    def post(self, request, pk):
+        try:
+            task = Task.objects.get(pk=pk)
+        except Task.DoesNotExist:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if task.publisher != request.user:
+            return Response({'detail': '只有发布者可以确认完成'}, status=status.HTTP_403_FORBIDDEN)
+
+        if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.PENDING_CONFIRM):
+            return Response({'detail': '当前任务状态无法确认完成'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task.status = TaskStatus.COMPLETED
+        task.save()
+
+        # 检测接单者是否触发首次助人奖励
+        first_help_bonus = False
+        if task.worker:
+            first_help_bonus = credit_service.grant_first_help_bonus(task.worker)
+
+        # 执行悬赏积分转账（发布者 → 接单者）
+        reward_transferred = credit_service.transfer_task_reward(task)
+
+        return Response({
+            'detail': '任务已标记为完成',
+            'first_help_bonus': first_help_bonus,
+            'reward_transferred': reward_transferred,
+        })
+
+
+class TaskCancelView(APIView):
+    """
+    POST /api/tasks/{id}/cancel/ → 取消任务
+    - 只有发布者可以取消
+    - 已完成的任务不能取消
+    - OPEN 状态取消时退还发布手续费（已接单则不退，服务已消耗）
+    """
+
+    def post(self, request, pk):
+        try:
+            task = Task.objects.get(pk=pk)
+        except Task.DoesNotExist:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if task.publisher != request.user:
+            return Response({'detail': '只有发布者可以取消任务'}, status=status.HTTP_403_FORBIDDEN)
+
+        if task.status == TaskStatus.COMPLETED:
+            return Response({'detail': '已完成的任务无法取消'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if task.status == TaskStatus.CANCELLED:
+            return Response({'detail': '任务已经是取消状态'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 只有待接单状态才退还手续费（已接单说明服务已消耗）
+        refunded = False
+        if task.status == TaskStatus.OPEN:
+            credit_service.refund_publish_fee(request.user, task.title)
+            refunded = True
+
+        task.status = TaskStatus.CANCELLED
+        task.save()
+        return Response({'detail': '任务已取消', 'fee_refunded': refunded})
+
+
+class MyTaskListView(generics.ListAPIView):
+    """
+    GET /api/tasks/mine/ → 获取当前用户发布的所有任务
+    支持 ?status= 过滤（如只看进行中的任务）
+    """
+    serializer_class = TaskDetailSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        task_status = self.request.query_params.get('status')
+
+        if task_status in [TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED]:
+            # 进行中和已完成的列表：既展示发布的，也展示接手(worker)的
+            qs = Task.objects.filter(
+                Q(publisher=user) | Q(worker=user)
+            )
+        else:
+            # 发布的任务（status=""）
+            qs = Task.objects.filter(publisher=user)
+
+        if task_status:
+            qs = qs.filter(status=task_status)
+            
+        return qs.select_related('publisher', 'worker').order_by('-created_at')
+
+
+class TaskUpdateView(generics.UpdateAPIView):
+    """
+    PATCH /api/tasks/{id}/edit/ → 发布者修改任务内容
+    - 只有任务发布者可以修改
+    - 只有 OPEN 状态（待接单）的任务可以修改，接单后锁定
+    """
+    serializer_class = TaskUpdateSerializer
+    http_method_names = ['patch', 'head', 'options']  # 只允许 PATCH 局部更新
+
+    def get_queryset(self):
+        # 权限：当前用户才能修改自己的任务
+        return Task.objects.filter(publisher=self.request.user)
+
+    def get_object(self):
+        try:
+            task = Task.objects.get(pk=self.kwargs['pk'], publisher=self.request.user)
+        except Task.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('任务不存在或无权限修改')
+        return task
+
+
+# ═══════════════════ 消息模块 ═══════════════════
+
+class TaskMessageView(APIView):
+    """
+    GET  /api/tasks/{id}/messages/ → 获取任务的消息列表（只有任务参与者可查看）
+    POST /api/tasks/{id}/messages/ → 在任务中发送私信
+    """
+
+    def _get_task_or_404(self, pk):
+        try:
+            return Task.objects.get(pk=pk)
+        except Task.DoesNotExist:
+            return None
+
+    def _check_participant(self, task, user):
+        """校验用户是否为任务的发布者或接单者"""
+        return user == task.publisher or user == task.worker
+
+    def get(self, request, pk):
+        task = self._get_task_or_404(pk)
+        if not task:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not self._check_participant(task, request.user):
+            return Response({'detail': '无权查看此任务的消息'}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = Message.objects.filter(task=task).order_by('created_at')
+        return Response(MessageSerializer(messages, many=True).data)
+
+    def post(self, request, pk):
+        task = self._get_task_or_404(pk)
+        if not task:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not self._check_participant(task, request.user):
+            return Response({'detail': '只有任务参与者才能发送消息'}, status=status.HTTP_403_FORBIDDEN)
+
+        content_text = request.data.get('content_text', '').strip()
+        if not content_text:
+            return Response({'detail': '消息内容不能为空'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 对方即为另一位参与者
+        receiver = task.worker if request.user == task.publisher else task.publisher
+
+        msg = Message.objects.create(
+            task=task,
+            sender=request.user,
+            receiver=receiver,
+            content_text=content_text,
+        )
+        return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════ 积分模块 ═══════════════════
+
+class CreditListView(generics.ListAPIView):
+    """
+    GET /api/credits/ → 获取当前用户的积分变更明细（按时间倒序）
+    """
+    serializer_class = CreditDetailSerializer
+
+    def get_queryset(self):
+        return CreditDetail.objects.filter(
+            user=self.request.user
+        ).order_by('-created_at')
+
+
+# ═══════════════════ 手机号绑定 ═══════════════════
+
+class BindPhoneView(APIView):
+    """
+    POST /api/auth/bind-phone/
+    接收微信 getPhoneNumber 返回的 code，
+    调用微信接口换取真实手机号并绑定到当前账号。
+    微信官方方案（2021年后）：code 换取手机号，需先获取 access_token。
+    """
+
+    def post(self, request):
+        code = request.data.get('code')
+        if not code:
+            return Response({'detail': '缺少 code 参数'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 1: 获取小程序全局 access_token
+        token_resp = requests.get(
+            'https://api.weixin.qq.com/cgi-bin/token',
+            params={
+                'grant_type': 'client_credential',
+                'appid': settings.WX_APPID,
+                'secret': settings.WX_SECRET,
+            },
+            timeout=5,
+        ).json()
+
+        access_token = token_resp.get('access_token')
+        if not access_token:
+            return Response(
+                {'detail': f"获取 access_token 失败: {token_resp.get('errmsg', '未知错误')}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Step 2: 用 code 换取手机号
+        phone_resp = requests.post(
+            f'https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token={access_token}',
+            json={'code': code},
+            timeout=5,
+        ).json()
+
+        if phone_resp.get('errcode', 0) != 0:
+            return Response(
+                {'detail': f"获取手机号失败: {phone_resp.get('errmsg')}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        phone = phone_resp['phone_info']['phoneNumber']
+        request.user.phone = phone
+        request.user.save(update_fields=['phone'])
+
+        return Response({'phone': phone})
+
+
+# ═══════════════════ 图片上传 ═══════════════════
+
+class ImageUploadView(APIView):
+    """
+    POST /api/upload/image/
+    接受 multipart/form-data 中的 image 字段，
+    校验格式（JPEG/PNG/GIF/WebP）和大小（≤10MB），
+    保存到 MEDIA_ROOT/uploads/ 并返回可访问的绝对 URL。
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+    MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+
+    def post(self, request):
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'detail': '请选择要上传的图片（字段名：image）'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if image_file.content_type not in self.ALLOWED_TYPES:
+            return Response({'detail': '仅支持 JPEG / PNG / GIF / WebP 格式'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if image_file.size > self.MAX_SIZE:
+            return Response({'detail': '图片不能超过 10MB'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 用时间戳 + 原始文件名防止重名
+        ext = image_file.name.rsplit('.', 1)[-1].lower()
+        filename = f'uploads/{int(time.time())}_{image_file.name}'
+        saved_path = default_storage.save(filename, ContentFile(image_file.read()))
+
+        # 构建完整可访问 URL（开发时返回 http://127.0.0.1:8000/media/...）
+        image_url = request.build_absolute_uri(settings.MEDIA_URL + saved_path)
+        return Response({'url': image_url}, status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════ 任务二维码 ═══════════════════
+
+class TaskQRCodeView(APIView):
+    """
+    GET /api/tasks/{id}/qrcode/
+    生成任务分享二维码（PNG 图片直接返回）。
+    二维码内容为 campus-helper://task/{id}，
+    小程序可通过 wx.scanCode 扫描后解析跳转到任务详情页。
+    """
+
+    def get(self, request, pk):
+        try:
+            task = Task.objects.only('id', 'title').get(pk=pk)
+        except Task.DoesNotExist:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 生成包含任务 deep-link 的二维码
+        qr_content = f'campus-helper://task/{task.pk}'
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_content)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color='black', back_color='white')
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+
+        return HttpResponse(buffer, content_type='image/png')
+

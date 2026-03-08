@@ -1,0 +1,159 @@
+<view class="container">
+
+  <!-- 装饰圆 -->
+  <view class="deco-circle deco-1"></view>
+  <view class="deco-circle deco-2"></view>
+
+  <!-- Logo 区域 -->
+  <view class="hero">
+    <view class="logo-ring">
+      <text class="logo-emoji">🎓</text>
+    </view>
+    <text class="app-name">校园互助</text>
+    <text class="slogan">互帮互助，共创美好校园</text>
+  </view>
+
+  <!-- 特性展示 -->
+  <view class="features">
+    <view class="feature-item">
+      <text class="feature-icon">📚</text>
+      <text class="feature-label">学业互助</text>
+    </view>
+    <view class="feature-item">
+      <text class="feature-icon">🛒</text>
+      <text class="feature-label">物品交易</text>
+    </view>
+    <view class="feature-item">
+      <text class="feature-icon">🤝</text>
+      <text class="feature-label">生活协助</text>
+    </view>
+  </view>
+
+  <!-- ── 底部操作区 ── -->
+  <view class="bottom safe-area-bottom">
+
+    <!-- 微信一键登录 -->
+    <button
+      class="login-btn wx-btn {{isLoading && activeMode === 'wx' ? 'loading' : ''}}"
+      loading="{{isLoading && activeMode === 'wx'}}"
+      disabled="{{isLoading}}"
+      bindtap="handleWxLogin"
+    >
+      <text wx:if="{{!(isLoading && activeMode === 'wx')}}">微信一键登录</text>
+    </button>
+
+    <!-- 切换到账号密码 -->
+    <view class="switch-row">
+      <view class="divider-line"></view>
+      <text class="divider-text">或</text>
+      <view class="divider-line"></view>
+    </view>
+
+    <!-- Tab 切换：登录 / 注册 -->
+    <view class="form-card" wx:if="{{showAccountForm}}">
+      <view class="form-tabs">
+        <view
+          class="form-tab {{formMode === 'login' ? 'active' : ''}}"
+          bindtap="switchFormMode"
+          data-mode="login"
+        >账号登录</view>
+        <view
+          class="form-tab {{formMode === 'register' ? 'active' : ''}}"
+          bindtap="switchFormMode"
+          data-mode="register"
+        >注册</view>
+      </view>
+
+      <!-- 账号密码登录 -->
+      <block wx:if="{{formMode === 'login'}}">
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="学生ID或用户名"
+            placeholder-class="ph"
+            value="{{form.username}}"
+            bindinput="onInput"
+            data-field="username"
+          />
+        </view>
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="密码"
+            placeholder-class="ph"
+            password
+            value="{{form.password}}"
+            bindinput="onInput"
+            data-field="password"
+          />
+        </view>
+        <button
+          class="submit-btn {{isLoading && activeMode === 'account' ? 'loading' : ''}}"
+          loading="{{isLoading && activeMode === 'account'}}"
+          disabled="{{isLoading}}"
+          bindtap="handleAccountLogin"
+        >登录</button>
+      </block>
+
+      <!-- 注册 -->
+      <block wx:if="{{formMode === 'register'}}">
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="用户名（2-20个字符）"
+            placeholder-class="ph"
+            value="{{form.username}}"
+            bindinput="onInput"
+            data-field="username"
+          />
+        </view>
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="学生ID（选填）"
+            placeholder-class="ph"
+            value="{{form.student_id}}"
+            bindinput="onInput"
+            data-field="student_id"
+          />
+        </view>
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="密码（至少6位）"
+            placeholder-class="ph"
+            password
+            value="{{form.password}}"
+            bindinput="onInput"
+            data-field="password"
+          />
+        </view>
+        <view class="input-item">
+          <input
+            class="input-field"
+            placeholder="确认密码"
+            placeholder-class="ph"
+            password
+            value="{{form.password2}}"
+            bindinput="onInput"
+            data-field="password2"
+          />
+        </view>
+        <button
+          class="submit-btn {{isLoading && activeMode === 'register' ? 'loading' : ''}}"
+          loading="{{isLoading && activeMode === 'register'}}"
+          disabled="{{isLoading}}"
+          bindtap="handleRegister"
+        >注册并登录</button>
+      </block>
+    </view>
+
+    <!-- 展开/收起 账号表单 -->
+    <view class="toggle-account" bindtap="toggleAccountForm">
+      {{showAccountForm ? '收起 ▲' : '账号密码登录 / 注册 ▼'}}
+    </view>
+
+    <text class="tip">登录即同意《用户协议》和《隐私政策》</text>
+  </view>
+
+</view>

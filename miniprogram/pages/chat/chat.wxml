@@ -1,0 +1,67 @@
+<view class="chat-page">
+
+  <!-- 消息滚动区 -->
+  <scroll-view
+    class="msg-list"
+    scroll-y
+    scroll-into-view="{{scrollToId}}"
+    scroll-with-animation
+  >
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{messages.length === 0 && !isLoading}}">
+      <image src="/images/empty.png" />
+      <text>还没有消息，说点什么吧 👋</text>
+    </view>
+
+    <!-- 消息气泡 -->
+    <view
+      wx:for="{{messages}}"
+      wx:key="id"
+      id="msg-{{item.id}}"
+      class="msg-row {{item.isMine ? 'mine' : 'theirs'}}"
+    >
+      <!-- 对方头像 -->
+      <view class="bubble-avatar" wx:if="{{!item.isMine}}">
+        <image wx:if="{{item.sender_avatar}}" src="{{item.sender_avatar}}" class="avatar-sm" />
+        <view wx:else class="avatar-sm-placeholder">{{item.sender_name[0]}}</view>
+      </view>
+
+      <!-- 气泡 -->
+      <view class="bubble {{item.isMine ? 'bubble-mine' : 'bubble-theirs'}}">
+        <text>{{item.content_text}}</text>
+      </view>
+
+      <!-- 自己头像 -->
+      <view class="bubble-avatar" wx:if="{{item.isMine}}">
+        <image wx:if="{{myAvatar}}" src="{{myAvatar}}" class="avatar-sm" />
+        <view wx:else class="avatar-sm-placeholder mine">{{myName[0]}}</view>
+      </view>
+    </view>
+
+    <view id="msg-bottom"></view>
+  </scroll-view>
+
+  <!-- 底部输入栏（固定 + 安全区） -->
+  <view
+    class="input-bar safe-area-bottom"
+    style="bottom: {{keyboardHeight}}px"
+  >
+    <input
+      class="chat-input"
+      placeholder="说点什么..."
+      placeholder-class="placeholder"
+      value="{{inputText}}"
+      bindinput="onInputChange"
+      confirm-type="send"
+      bindconfirm="handleSend"
+      adjust-position="{{false}}"
+      cursor-spacing="20"
+    />
+    <button
+      class="send-btn {{(!inputText.trim() || isSending) ? 'send-disabled' : ''}}"
+      disabled="{{!inputText.trim() || isSending}}"
+      bindtap="handleSend"
+    >发送</button>
+  </view>
+
+</view>

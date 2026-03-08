@@ -1,0 +1,58 @@
+.page { display: flex; flex-direction: column; height: 100vh; background: var(--color-bg-page); }
+.form-scroll { flex: 1; padding: var(--space-md); }
+
+/* ── 表单区块 ── */
+.form-section { margin-bottom: var(--space-lg); }
+.label { font-size: var(--font-sm); color: var(--color-text-secondary); display: block; margin-bottom: var(--space-xs); font-weight: 500; }
+.required { color: var(--color-danger); }
+.count { display: block; text-align: right; font-size: var(--font-xs); color: var(--color-text-placeholder); margin-top: 4rpx; }
+.hint { font-size: var(--font-xs); color: var(--color-text-placeholder); display: block; margin-top: 4rpx; }
+.placeholder { color: var(--color-text-placeholder) !important; }
+
+/* ── 输入框 ── */
+.input {
+  width: 100%; height: 88rpx; background: #fff; border-radius: var(--radius-md);
+  padding: 0 var(--space-md); font-size: var(--font-md); box-sizing: border-box;
+  border: 2rpx solid var(--color-border);
+}
+.input:focus { border-color: var(--color-primary); }
+.textarea {
+  width: 100%; min-height: 200rpx; background: #fff; border-radius: var(--radius-md);
+  padding: var(--space-md); font-size: var(--font-md); box-sizing: border-box;
+  border: 2rpx solid var(--color-border); line-height: 1.6;
+}
+.textarea:focus { border-color: var(--color-primary); }
+
+/* ── 积分输入 ── */
+.input-with-unit { display: flex; align-items: center; gap: var(--space-sm); }
+.reward-input { flex: 1; }
+.unit { font-size: var(--font-md); color: var(--color-text-secondary); white-space: nowrap; }
+
+/* ── 分类选择器 ── */
+.cat-picker { display: flex; gap: var(--space-sm); }
+.cat-option {
+  flex: 1; height: 72rpx; border-radius: var(--radius-md); background: #fff;
+  border: 2rpx solid var(--color-border); display: flex; align-items: center;
+  justify-content: center; font-size: var(--font-sm); color: var(--color-text-secondary);
+  transition: all 0.2s;
+}
+.cat-selected {
+  border-color: var(--color-primary); background: var(--color-primary-bg);
+  color: var(--color-primary); font-weight: 600;
+}
+
+/* ── 地理位置 ── */
+.location-btn {
+  height: 88rpx; background: #fff; border-radius: var(--radius-md);
+  border: 2rpx solid var(--color-border); display: flex; align-items: center;
+  padding: 0 var(--space-md); font-size: var(--font-md); color: var(--color-text-placeholder);
+}
+.loc-selected { color: var(--color-text-primary); }
+
+/* ── 提交栏 ── */
+.submit-bar {
+  background: #fff; padding: var(--space-md) var(--space-lg);
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+}
+.submit-btn { width: 100%; height: 96rpx; font-size: var(--font-lg); line-height: 96rpx; }
+.placeholder-bottom { height: 40rpx; }
