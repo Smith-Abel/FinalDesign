@@ -26,6 +26,7 @@ Page({
     data: {
         task: null,
         actionType: 'none',  // accept | complete_cancel | waiting | none
+        canReport: false,    // 非发布者可以举报
         isLoading: false,
     },
 
@@ -62,6 +63,9 @@ Page({
         const userId = app.globalData.userInfo?.id
         if (!userId) return 'none'
         const { status, publisher, worker } = task
+        // 非发布者可见举报按钮，已取消和已完成的任务不显示
+        const canReport = publisher?.id !== userId && status !== 'CANCELLED' && status !== 'COMPLETED'
+        this.setData({ canReport })
         if (status === 'COMPLETED' || status === 'CANCELLED') return 'none'
         if (status === 'OPEN') return publisher?.id === userId ? 'none' : 'accept'
         if (status === 'IN_PROGRESS' || status === 'PENDING_CONFIRM') {
@@ -75,9 +79,12 @@ Page({
         this.setData({ isLoading: true })
         try {
             await request.post(`/api/tasks/${this.taskId}/accept/`)
-            wx.showToast({ title: '接单成功！', icon: 'success' })
-            await new Promise(r => setTimeout(r, 800))
-            this._loadTask()
+            wx.showToast({
+                title: '接单成功！',
+                icon: 'success',
+                duration: 800,
+                complete: () => this._loadTask(),
+            })
         } finally {
             this.setData({ isLoading: false })
         }
@@ -116,9 +123,7 @@ Page({
                 this.setData({ isLoading: true })
                 try {
                     await request.post(`/api/tasks/${this.taskId}/cancel/`)
-                    wx.showToast({ title: '任务已取消', icon: 'success' })
-                    await new Promise(r => setTimeout(r, 800))
-                    this._loadTask()
+                    wx.showToast({ title: '任务已取消', icon: 'success', duration: 800, complete: () => this._loadTask() })
                 } finally {
                     this.setData({ isLoading: false })
                 }
@@ -129,6 +134,10 @@ Page({
     goToChat() {
         const title = encodeURIComponent(this.data.task?.title || '任务聊天')
         wx.navigateTo({ url: `/pages/chat/chat?id=${this.taskId}&title=${title}` })
+    },
+
+    goToReport() {
+        wx.navigateTo({ url: `/pages/report/report?target_type=task&target_id=${this.taskId}` })
     },
 
     previewTaskImage(e) {

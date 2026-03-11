@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Task, Message, CreditDetail
+from .models import User, Task, Message, CreditDetail, Report, ReportReason, ReportStatus
 
 
 # ───────── 用户序列化器 ─────────
@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'phone', 'student_id', 'avatar', 'college',
+            'id', 'username', 'nickname', 'phone', 'student_id', 'avatar', 'college',
             'gender', 'credit_score', 'is_verified',
             'profile_reward_given', 'first_help_rewarded',
             'tasks_created', 'tasks_done'
@@ -24,7 +24,8 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def get_tasks_created(self, obj):
-        return obj.published_tasks.count()
+        from .models import TaskStatus
+        return obj.published_tasks.exclude(status=TaskStatus.CANCELLED).count()
 
     def get_tasks_done(self, obj):
         from .models import TaskStatus
@@ -36,7 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class TaskListSerializer(serializers.ModelSerializer):
     """列表页使用的轻量序列化器，减少不必要字段传输"""
-    publisher_name = serializers.CharField(source='publisher.username', read_only=True)
+    publisher_name = serializers.SerializerMethodField()
     publisher_avatar = serializers.URLField(source='publisher.avatar', read_only=True)
     cover_image = serializers.SerializerMethodField()
 
@@ -51,6 +52,9 @@ class TaskListSerializer(serializers.ModelSerializer):
         if obj.images and len(obj.images) > 0:
             return obj.images[0]
         return None
+
+    def get_publisher_name(self, obj):
+        return obj.publisher.nickname or obj.publisher.username
 
 
 class TaskDetailSerializer(serializers.ModelSerializer):
@@ -79,6 +83,12 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             'latitude', 'longitude', 'location_name', 'images',
         ]
         read_only_fields = ['id']
+
+    def validate(self, attrs):
+        images = attrs.get('images', [])
+        if not images or len(images) == 0:
+            raise serializers.ValidationError({"images": "发布任务必须上传至少一张图片以展示在瀑布流"})
+        return attrs
 
 
 class TaskUpdateSerializer(serializers.ModelSerializer):
@@ -109,13 +119,16 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     # sender 返回用户 ID，便于前端判断消息是否是自己发送（isMine）
     sender = serializers.IntegerField(source='sender.id', read_only=True)
-    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    sender_name = serializers.SerializerMethodField()
     sender_avatar = serializers.URLField(source='sender.avatar', read_only=True, default='')
 
     class Meta:
         model = Message
         fields = ['id', 'sender', 'sender_name', 'sender_avatar', 'content_text', 'is_read', 'created_at']
         read_only_fields = ['id', 'sender', 'sender_name', 'sender_avatar', 'is_read', 'created_at']
+
+    def get_sender_name(self, obj):
+        return obj.sender.nickname or obj.sender.username
 
 
 # ───────── 积分明细序列化器 ─────────
@@ -125,3 +138,40 @@ class CreditDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditDetail
         fields = ['id', 'change_amount', 'reason', 'created_at']
+
+
+# ───────── 举报序列化器 ─────────
+
+class ReportCreateSerializer(serializers.ModelSerializer):
+    """用于用户提交举报，证据截图和快照由view自动填充"""
+
+    class Meta:
+        model = Report
+        fields = ['target_type', 'target_id', 'reason', 'description', 'images']
+
+    def validate_reason(self, value):
+        valid = [r.value for r in ReportReason]
+        if value not in valid:
+            raise serializers.ValidationError('无效的举报类型')
+        return value
+
+
+class ReportListSerializer(serializers.ModelSerializer):
+    """用于展示用户自己的举报列表"""
+    status_label = serializers.SerializerMethodField()
+    reason_label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Report
+        fields = [
+            'id', 'target_type', 'target_id', 'target_snapshot',
+            'reason', 'reason_label', 'description', 'images',
+            'status', 'status_label', 'result_note',
+            'created_at', 'updated_at',
+        ]
+
+    def get_status_label(self, obj):
+        return dict(ReportStatus.choices).get(obj.status, obj.status)
+
+    def get_reason_label(self, obj):
+        return dict(ReportReason.choices).get(obj.reason, obj.reason)

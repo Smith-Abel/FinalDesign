@@ -113,10 +113,11 @@ class TaskModuleTest(TestCase):
             'category': TaskCategory.HELP,
             'title': '帮我买饭',
             'content': '详情内容',
+            'images': ['http://test.com/a.jpg'],
             'reward_amount': '0.00',  # 默认无悬赏，避免积分不足干扰接单测试
         }
         defaults.update(kwargs)
-        resp = self.client.post('/api/tasks/', defaults)
+        resp = self.client.post('/api/tasks/', defaults, format='json')
         return resp
 
     # ── 发布任务 ──
@@ -741,11 +742,12 @@ class CreditPaymentTest(TestCase):
             'category': TaskCategory.HELP,
             'title': '带地址的任务',
             'content': '内容',
+            'images': ['http://test.com/a.jpg'],
             'reward_amount': '5.00',
             'latitude': '39.908823',
             'longitude': '116.397470',
             'location_name': '天安门广场',
-        })
+        }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
         detail_resp = self.client.get(f'/api/tasks/{resp.data["id"]}/')

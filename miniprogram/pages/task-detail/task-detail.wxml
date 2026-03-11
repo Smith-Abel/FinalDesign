@@ -14,6 +14,10 @@
     <view class="location" wx:if="{{task.location_name}}">
       <text>📍 {{task.location_name}}</text>
     </view>
+    <!-- 举报入口：非发布者可见 -->
+    <view class="report-btn" wx:if="{{canReport}}" bindtap="goToReport">
+      <text>🚩 举报此任务</text>
+    </view>
   </view>
 
   <!-- 发布者信息 -->

@@ -30,5 +30,9 @@ urlpatterns = [
 
     # ── 图片上传 ──
     path('upload/image/', views.ImageUploadView.as_view(), name='image-upload'),
+
+    # ── 举报模块 ──
+    path('reports/', views.ReportCreateView.as_view(), name='report-create'),
+    path('reports/mine/', views.ReportListView.as_view(), name='report-mine'),
 ]
 

@@ -11,7 +11,7 @@ const GENDER_OPTIONS = [
 Page({
     data: {
         user: null,
-        editForm: { student_id: '', college: '', gender: 'SECRET' },
+        editForm: { nickname: '', student_id: '', college: '', gender: 'SECRET' },
         genderOptions: GENDER_OPTIONS,
         genderIdx: 0,
         genderLabel: '保密',
@@ -37,6 +37,7 @@ Page({
                 genderIdx: Math.max(genderIdx, 0),
                 genderLabel: GENDER_OPTIONS[Math.max(genderIdx, 0)].label,
                 editForm: {
+                    nickname: user.nickname || '',
                     student_id: user.student_id || '',
                     college: user.college || '',
                     gender: user.gender || 'SECRET',
@@ -142,6 +143,10 @@ Page({
 
     goToCredits() {
         wx.navigateTo({ url: '/pages/credits/credits' })
+    },
+
+    goToMyReports() {
+        wx.navigateTo({ url: '/pages/my-reports/my-reports' })
     },
 
     goToSettings() {

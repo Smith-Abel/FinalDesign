@@ -1,0 +1,75 @@
+<view class="page">
+  <scroll-view scroll-y class="scroll">
+
+    <!-- 被举报对象摘要 -->
+    <view class="target-card" wx:if="{{targetInfo}}">
+      <text class="target-label">举报对象</text>
+      <view class="target-meta">
+        <text class="target-type-tag">{{targetTypeLabel}}</text>
+        <text class="target-title">{{targetInfo}}</text>
+      </view>
+    </view>
+
+    <!-- 举报类型单选 -->
+    <view class="section">
+      <text class="section-title">举报类型 <text class="required">*</text></text>
+      <view class="reason-grid">
+        <view
+          wx:for="{{reasons}}"
+          wx:key="key"
+          class="reason-item {{form.reason === item.key ? 'reason-selected' : ''}}"
+          bindtap="onReasonSelect"
+          data-key="{{item.key}}"
+        >
+          <text class="reason-icon">{{item.icon}}</text>
+          <text class="reason-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 举报说明 -->
+    <view class="section">
+      <text class="section-title">补充说明（可选）</text>
+      <textarea
+        class="desc-input"
+        placeholder="请详细描述举报内容，有助于我们快速处理"
+        placeholder-class="placeholder"
+        maxlength="300"
+        value="{{form.description}}"
+        bindinput="onDescInput"
+        auto-height
+      />
+      <text class="count">{{form.description.length}}/300</text>
+    </view>
+
+    <!-- 上传截图 -->
+    <view class="section">
+      <text class="section-title">证据截图（可选，最多3张）</text>
+      <view class="image-uploader">
+        <block wx:for="{{form.images}}" wx:key="*this">
+          <view class="image-wrap">
+            <image src="{{item}}" class="uploaded-img" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" />
+            <view class="delete-btn" bindtap="removeImage" data-index="{{index}}">×</view>
+          </view>
+        </block>
+        <view class="upload-btn" bindtap="chooseImage" wx:if="{{form.images.length < 3}}">
+          <text class="upload-icon">📷</text>
+        </view>
+      </view>
+    </view>
+
+    <view style="height: 160rpx;"></view>
+  </scroll-view>
+
+  <!-- 底部提交栏 -->
+  <view class="submit-bar safe-area-bottom">
+    <button
+      class="submit-btn {{!canSubmit || isLoading ? 'btn-disabled' : ''}}"
+      disabled="{{!canSubmit || isLoading}}"
+      loading="{{isLoading}}"
+      bindtap="handleSubmit"
+    >
+      {{isLoading ? '提交中...' : '提交举报'}}
+    </button>
+  </view>
+</view>

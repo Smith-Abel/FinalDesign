@@ -6,6 +6,7 @@
 .meta { display: flex; gap: var(--space-md); margin-top: var(--space-sm); }
 .meta-item { font-size: var(--font-sm); color: var(--color-text-secondary); }
 .location { margin-top: var(--space-xs); font-size: var(--font-sm); color: var(--color-text-secondary); }
+.report-btn { margin-top: var(--space-md); display: inline-flex; align-items: center; gap: 8rpx; font-size: 24rpx; color: #F56C6C; background: #FEF0F0; padding: 8rpx 20rpx; border-radius: 20rpx; }
 
 .user-card { margin-bottom: var(--space-md); }
 .section-title { font-size: var(--font-sm); color: var(--color-text-secondary); display: block; margin-bottom: var(--space-sm); }

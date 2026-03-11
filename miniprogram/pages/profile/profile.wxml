@@ -12,8 +12,8 @@
     </view>
 
     <!-- 右侧信息 -->
-    <view class="user-meta">
-      <text class="username">{{user.username}}</text>
+    <view class="user-meta" bindtap="editProfile">
+      <text class="username">{{user.nickname || user.username}} <text style="font-size: 28rpx; color: #909399; margin-left: 8rpx;">✏️</text></text>
       <view class="tag-row">
         <view class="tag" wx:if="{{user.college}}">{{user.college}}</view>
         <view class="tag tag-verified" wx:if="{{user.student_id}}">已认证</view>
@@ -74,9 +74,9 @@
       <text class="menu-label">积分明细</text>
       <text class="menu-arrow">›</text>
     </view>
-    <view class="menu-item" bindtap="editProfile">
-      <view class="menu-icon-wrap"><text class="menu-icon">✏️</text></view>
-      <text class="menu-label">编辑资料</text>
+    <view class="menu-item" bindtap="goToMyReports">
+      <view class="menu-icon-wrap"><text class="menu-icon">🚩</text></view>
+      <text class="menu-label">我的举报</text>
       <text class="menu-arrow">›</text>
     </view>
     <view class="menu-item" bindtap="goToSettings">
@@ -95,9 +95,18 @@
 
 <!-- ⑤ 内联编辑弹窗 -->
 <view class="modal-mask" wx:if="{{showEditModal}}" bindtap="closeEdit">
-  <view class="modal-box" catchtap="noop">
-    <view class="modal-title">编辑资料</view>
-    <view class="form-item">
+    <view class="modal-box" catchtap="noop">
+      <view class="modal-title">编辑资料</view>
+      <view class="form-item">
+        <text class="field-label">昵称</text>
+        <input class="field-input" placeholder="请输入昵称" value="{{editForm.nickname}}"
+          bindinput="onInput" data-field="nickname" />
+      </view>
+      <view class="form-item">
+        <text class="field-label">用户名</text>
+        <input class="field-input" value="{{user.username}}" disabled="true" placeholder="注册时分配，无法修改" style="color: #999;"/>
+      </view>
+      <view class="form-item">
       <text class="field-label">性别</text>
       <picker mode="selector" range="{{genderOptions}}" range-key="label"
         value="{{genderIdx}}" bindchange="onGenderChange" style="flex: 1;">

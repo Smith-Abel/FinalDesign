@@ -41,18 +41,12 @@
   color: var(--color-primary); font-weight: 600;
 }
 
-/* ── 地理位置 ── */
-.location-btn {
-  height: 88rpx; background: #fff; border-radius: var(--radius-md);
-  border: 2rpx solid var(--color-border); display: flex; align-items: center;
-  padding: 0 var(--space-md); font-size: var(--font-md); color: var(--color-text-placeholder);
-}
-.loc-selected { color: var(--color-text-primary); }
+
 
 /* ── 提交栏 ── */
 .submit-bar {
   background: #fff; padding: var(--space-md) var(--space-lg);
   box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
 }
-.submit-btn { width: 100%; height: 96rpx; font-size: var(--font-lg); line-height: 96rpx; }
+.submit-btn { width: 100%; height: 96rpx; display: flex; align-items: center; justify-content: center; font-size: var(--font-lg); line-height: normal; }
 .placeholder-bottom { height: 40rpx; }

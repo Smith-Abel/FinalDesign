@@ -1,0 +1,59 @@
+<view class="page">
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{isLoading}}">
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:elif="{{reports.length === 0}}">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">暂无举报记录</text>
+    <text class="empty-hint">您还没有提交过任何举报</text>
+  </view>
+
+  <!-- 举报列表 -->
+  <scroll-view scroll-y class="list" wx:else>
+    <view class="report-card" wx:for="{{reports}}" wx:key="id">
+
+      <!-- 卡片头部：类型 + 状态 -->
+      <view class="card-header">
+        <view class="type-row">
+          <text class="type-tag">{{item.target_type === 'task' ? '🗂️ 任务' : '👤 用户'}}</text>
+          <text class="reason-tag">{{item.reason_label}}</text>
+        </view>
+        <text class="status-badge {{item.statusClass}}">{{item.status_label}}</text>
+      </view>
+
+      <!-- 被举报对象快照 -->
+      <view class="snapshot" wx:if="{{item.target_snapshot && item.target_snapshot.title}}">
+        <text class="snapshot-title">{{item.target_snapshot.title}}</text>
+      </view>
+      <view class="snapshot" wx:elif="{{item.target_snapshot && item.target_snapshot.username}}">
+        <text class="snapshot-title">@{{item.target_snapshot.username}}</text>
+      </view>
+
+      <!-- 举报说明 -->
+      <text class="desc" wx:if="{{item.description}}">{{item.description}}</text>
+
+      <!-- 证据图片 -->
+      <view class="evidence-images" wx:if="{{item.images && item.images.length > 0}}">
+        <image
+          wx:for="{{item.images}}" wx:for-item="img" wx:key="*this"
+          src="{{img}}" class="evidence-img" mode="aspectFill"
+          bindtap="previewImages" data-images="{{item.images}}" data-url="{{img}}"
+        />
+      </view>
+
+      <!-- 管理员回复 -->
+      <view class="result-box" wx:if="{{item.result_note}}">
+        <text class="result-label">📋 处理结果</text>
+        <text class="result-note">{{item.result_note}}</text>
+      </view>
+
+      <!-- 底部时间 -->
+      <text class="time">{{item.timeAgo}}</text>
+    </view>
+  </scroll-view>
+</view>

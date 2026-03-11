@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 
-from .models import User, Task, TaskStatus, Message, CreditDetail
+from .models import User, Task, TaskStatus, Message, CreditDetail, Report, ReportStatus, ReportTargetType
 from .serializers import (
     UserSerializer,
     TaskListSerializer,
@@ -22,6 +22,8 @@ from .serializers import (
     TaskUpdateSerializer,
     MessageSerializer,
     CreditDetailSerializer,
+    ReportCreateSerializer,
+    ReportListSerializer,
 )
 from . import services as credit_service
 
@@ -222,6 +224,9 @@ class TaskListCreateView(generics.ListCreateAPIView):
         else:
             qs = qs.exclude(status__in=[TaskStatus.CANCELLED, TaskStatus.COMPLETED])
             
+        # 自动风控：过滤已被隐藏的任务
+        qs = qs.filter(is_hidden=False)
+            
         if search_query:
             qs = qs.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query) | Q(tags__icontains=search_query))
             
@@ -351,11 +356,8 @@ class TaskCancelView(APIView):
         if task.status == TaskStatus.CANCELLED:
             return Response({'detail': '任务已经是取消状态'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 只有待接单状态才退还手续费（已接单说明服务已消耗）
+        # 发布任务取消不会返回手续费
         refunded = False
-        if task.status == TaskStatus.OPEN:
-            credit_service.refund_publish_fee(request.user, task.title)
-            refunded = True
 
         task.status = TaskStatus.CANCELLED
         task.save()
@@ -599,3 +601,98 @@ class TaskQRCodeView(APIView):
 
         return HttpResponse(buffer, content_type='image/png')
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 举报模块
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ReportCreateView(APIView):
+    """
+    POST /api/reports/
+    创建举报记录。包含防重复、频率限制、内容快照和自动风控逻辑。
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from django.utils import timezone
+        user = request.user
+        target_type = request.data.get('target_type')
+        target_id = request.data.get('target_id')
+
+        # 防重复举报：同一用户对同一对象已有 PENDING 记录
+        if Report.objects.filter(
+            reporter=user,
+            target_type=target_type,
+            target_id=target_id,
+            status=ReportStatus.PENDING
+        ).exists():
+            return Response(
+                {'detail': '您已对该内容提交过举报，请勿重复举报，等待审核中'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 频率限制：24小时内举报次数不超过5次
+        cutoff = timezone.now() - timezone.timedelta(hours=24)
+        recent_count = Report.objects.filter(reporter=user, created_at__gte=cutoff).count()
+        if recent_count >= 5:
+            return Response(
+                {'detail': '您今日24小时内的举报次数已达上限，请明日再试'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        serializer = ReportCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 报 内容快照：提交时存储被举报对象关键信息
+        snapshot = self._build_snapshot(target_type, target_id)
+
+        report = serializer.save(reporter=user, target_snapshot=snapshot)
+
+        # 自动风控：任务被举报天数达5次，自动隐藏该任务
+        if target_type == ReportTargetType.TASK:
+            report_count = Report.objects.filter(
+                target_type=ReportTargetType.TASK,
+                target_id=target_id
+            ).count()
+            if report_count >= 5:
+                Task.objects.filter(pk=target_id).update(is_hidden=True)
+
+        return Response(
+            {'detail': '举报已提交，我们将尽快审核并反馈结果'},
+            status=status.HTTP_201_CREATED
+        )
+
+    def _build_snapshot(self, target_type, target_id):
+        """构建被举报对象内容快照，防止对象被删除后举报记录无从查看"""
+        try:
+            if target_type == ReportTargetType.TASK:
+                task = Task.objects.get(pk=target_id)
+                return {
+                    'type': 'task',
+                    'title': task.title,
+                    'category': task.category,
+                    'status': task.status,
+                    'publisher': task.publisher.username,
+                }
+            elif target_type == ReportTargetType.USER:
+                user = User.objects.get(pk=target_id)
+                return {
+                    'type': 'user',
+                    'username': user.username,
+                    'nickname': user.nickname or '',
+                }
+        except (Task.DoesNotExist, User.DoesNotExist):
+            pass
+        return {}
+
+
+class ReportListView(generics.ListAPIView):
+    """
+    GET /api/reports/mine/
+    返回当前用户提交的所有举报记录及处理状态。
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ReportListSerializer
+
+    def get_queryset(self):
+        return Report.objects.filter(reporter=self.request.user)

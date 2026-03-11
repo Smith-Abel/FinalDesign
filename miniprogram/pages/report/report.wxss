@@ -1,0 +1,132 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f7f8fa;
+}
+
+.scroll { flex: 1; }
+
+/* 被举报对象摘要 */
+.target-card {
+    margin: 24rpx 24rpx 0;
+    background: #fff;
+    border-radius: 20rpx;
+    padding: 24rpx;
+    border-left: 6rpx solid #FF5722;
+}
+.target-label {
+    font-size: 22rpx;
+    color: #999;
+    display: block;
+    margin-bottom: 10rpx;
+}
+.target-meta { display: flex; align-items: center; gap: 14rpx; flex-wrap: wrap; }
+.target-type-tag {
+    font-size: 22rpx;
+    background: #FFF3E0;
+    color: #FF5722;
+    padding: 4rpx 14rpx;
+    border-radius: 20rpx;
+    white-space: nowrap;
+}
+.target-title {
+    font-size: 28rpx;
+    color: #333;
+    font-weight: 500;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 通用 section */
+.section {
+    margin: 24rpx 24rpx 0;
+    background: #fff;
+    border-radius: 20rpx;
+    padding: 28rpx;
+}
+.section-title {
+    font-size: 28rpx;
+    color: #333;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 20rpx;
+}
+.required { color: #F56C6C; margin-left: 4rpx; }
+
+/* 举报类型网格 */
+.reason-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+}
+.reason-item {
+    flex: 0 0 calc(50% - 8rpx);
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+    padding: 22rpx 20rpx;
+    background: #f7f8fa;
+    border-radius: 16rpx;
+    border: 2rpx solid transparent;
+    transition: all 0.2s;
+}
+.reason-selected {
+    background: #FFF3E0;
+    border-color: #FF5722;
+}
+.reason-icon { font-size: 32rpx; }
+.reason-label { font-size: 26rpx; color: #333; }
+
+/* 文字说明 */
+.desc-input {
+    width: 100%;
+    min-height: 160rpx;
+    font-size: 28rpx;
+    color: #333;
+    background: #f7f8fa;
+    border-radius: 14rpx;
+    padding: 18rpx;
+    box-sizing: border-box;
+    line-height: 1.6;
+}
+.placeholder { color: #C0C4CC; }
+.count { font-size: 22rpx; color: #C0C4CC; display: block; text-align: right; margin-top: 8rpx; }
+
+/* 图片上传（复用 publish 样式） */
+.image-uploader { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.image-wrap {
+    position: relative; width: 160rpx; height: 160rpx;
+    border-radius: 12rpx; overflow: hidden; border: 1rpx solid #e0e0e0;
+}
+.uploaded-img { width: 100%; height: 100%; }
+.delete-btn {
+    position: absolute; top: 0; right: 0;
+    width: 36rpx; height: 36rpx; background: rgba(0,0,0,0.5);
+    color: #fff; display: flex; align-items: center;
+    justify-content: center; border-bottom-left-radius: 12rpx;
+    font-size: 24rpx; z-index: 2;
+}
+.upload-btn {
+    width: 160rpx; height: 160rpx; background: #f7f8fa;
+    border: 2rpx dashed #dcdfe6; border-radius: 12rpx;
+    display: flex; align-items: center; justify-content: center;
+}
+.upload-icon { font-size: 48rpx; color: #c0c4cc; }
+
+/* 提交栏 */
+.submit-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; padding: 20rpx 32rpx;
+    box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+}
+.submit-btn {
+    width: 100%; height: 88rpx; line-height: 88rpx;
+    background: #FF5722; color: #fff; border: none;
+    border-radius: 44rpx; font-size: 32rpx;
+    font-weight: 600;
+}
+.btn-disabled { opacity: 0.5; }

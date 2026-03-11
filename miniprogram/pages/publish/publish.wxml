@@ -48,7 +48,7 @@
 
     <!-- 图片上传 -->
     <view class="form-section">
-      <text class="label">图片（可选，最多3张）</text>
+      <text class="label">图片 <text class="required">*</text> <text style="font-size: var(--font-xs); color: var(--color-text-placeholder);">(必填，最多3张)</text></text>
       <view class="image-uploader">
         <block wx:for="{{form.images}}" wx:key="*this">
           <view class="image-wrap">
@@ -93,14 +93,7 @@
       <text class="hint">当前余额：{{myCredits}} 积分</text>
     </view>
 
-    <!-- 地理位置 -->
-    <view class="form-section">
-      <text class="label">任务地点（可选）</text>
-      <view class="location-btn" bindtap="pickLocation">
-        <text wx:if="{{!form.location_name}}">📍 选择任务地点</text>
-        <text wx:else class="loc-selected">📍 {{form.location_name}}</text>
-      </view>
-    </view>
+
 
     <view class="placeholder-bottom"></view>
   </scroll-view>
@@ -108,8 +101,8 @@
   <!-- 底部提交按钮（固定 + 安全区） -->
   <view class="submit-bar safe-area-bottom">
     <button
-      class="btn-primary submit-btn {{!canSubmit || isLoading ? 'btn-disabled' : ''}}"
-      disabled="{{!canSubmit || isLoading}}"
+      class="btn-primary submit-btn {{isLoading ? 'btn-disabled' : ''}}"
+      disabled="{{isLoading}}"
       loading="{{isLoading}}"
       bindtap="handleSubmit"
     >

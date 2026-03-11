@@ -15,12 +15,8 @@ Page({
             content: '',
             tags: '',
             reward_amount: '0',
-            latitude: null,
-            longitude: null,
-            location_name: '',
             images: [],
         },
-        canSubmit: false,
         isLoading: false,
         myCredits: 0,
     },
@@ -44,30 +40,11 @@ Page({
     onCatSelect(e) {
         const category = e.currentTarget.dataset.key
         this.setData({ 'form.category': category })
-        this._checkForm()
     },
 
     onInput(e) {
         const field = e.currentTarget.dataset.field
         this.setData({ [`form.${field}`]: e.detail.value })
-        this._checkForm()
-    },
-
-    _checkForm() {
-        const { category, title, content } = this.data.form
-        this.setData({ canSubmit: !!(category && title.trim() && content.trim()) })
-    },
-
-    pickLocation() {
-        wx.chooseLocation({
-            success: ({ name, latitude, longitude }) => {
-                this.setData({
-                    'form.location_name': name,
-                    'form.latitude': latitude,
-                    'form.longitude': longitude,
-                })
-            },
-        })
     },
 
     async chooseImage() {
@@ -123,7 +100,20 @@ Page({
     },
 
     handleSubmit: debounce(async function () {
-        if (!this.data.canSubmit) return
+        const { category, title, content, images } = this.data.form
+        const isComplete = !!(category && title.trim() && content.trim() && images && images.length > 0)
+
+        if (!isComplete) {
+            wx.showModal({
+                title: '提示',
+                content: '请填完分类、标题、内容与图片（至少一张）才能发布哦！',
+                showCancel: false,
+                confirmText: '我知道了',
+                confirmColor: '#67C23A',
+            })
+            return
+        }
+
         this.setData({ isLoading: true })
         try {
             const { form } = this.data
@@ -137,14 +127,16 @@ Page({
                 ...form,
                 reward_amount: reward.toFixed(2),
             })
-            wx.showToast({ title: '发布成功！', icon: 'success' })
             // 清空表单
             this.setData({
-                form: { category: '', title: '', content: '', tags: '', reward_amount: '0', latitude: null, longitude: null, location_name: '', images: [] },
-                canSubmit: false,
+                form: { category: '', title: '', content: '', tags: '', reward_amount: '0', images: [] },
             })
-            // 跳转到首页广场
-            setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 800)
+            wx.showToast({
+                title: '发布成功！',
+                icon: 'success',
+                duration: 900,
+                complete: () => wx.switchTab({ url: '/pages/index/index' }),
+            })
         } finally {
             this.setData({ isLoading: false })
         }

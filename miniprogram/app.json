@@ -7,7 +7,9 @@
         "pages/chat/chat",
         "pages/profile/profile",
         "pages/credits/credits",
-        "pages/my-tasks/my-tasks"
+        "pages/my-tasks/my-tasks",
+        "pages/report/report",
+        "pages/my-reports/my-reports"
     ],
     "tabBar": {
         "color": "#606266",
