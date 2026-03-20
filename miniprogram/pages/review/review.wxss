@@ -1,0 +1,115 @@
+page {
+  background-color: #f7f8fa;
+  box-sizing: border-box;
+}
+
+.page {
+  padding: 30rpx;
+  padding-bottom: 120rpx;
+}
+
+.header {
+  margin-bottom: 40rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #303133;
+  display: block;
+}
+
+.subtitle {
+  font-size: 26rpx;
+  color: #909399;
+  margin-top: 10rpx;
+  display: block;
+}
+
+.rating-card, .comment-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.02);
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+.rating-item:last-child {
+  margin-bottom: 0;
+}
+
+.dim-label {
+  font-size: 28rpx;
+  color: #606266;
+  width: 140rpx;
+}
+
+.stars {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 30rpx;
+}
+
+.star {
+  font-size: 40rpx;
+  color: #DCDFE6;
+  transition: color 0.15s;
+}
+
+.star.star-active {
+  color: #E6A23C;
+}
+
+.dim-score {
+  font-size: 28rpx;
+  color: #E6A23C;
+  font-weight: bold;
+  width: 60rpx;
+  text-align: right;
+}
+
+.comment-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.comment-box {
+  width: 100%;
+  height: 200rpx;
+  background: #F5F7FA;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.submit-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  padding: 20rpx 30rpx;
+  box-shadow: 0 -4rpx 10rpx rgba(0,0,0,0.05);
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: #67C23A;
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  width: 100%;
+}
+.btn-primary.disabled {
+  opacity: 0.7;
+}

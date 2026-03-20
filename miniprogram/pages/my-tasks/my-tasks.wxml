@@ -64,6 +64,30 @@
             bindtap="handleCancel"
             size="mini"
           >取消</button>
+          <button
+            wx:if="{{item.canConfirm}}"
+            class="btn-confirm"
+            data-id="{{item.id}}"
+            bindtap="handleConfirmComplete"
+            size="mini"
+            type="primary"
+          >确认完成</button>
+          <button
+            wx:if="{{item.canRequestComplete}}"
+            class="btn-request"
+            data-id="{{item.id}}"
+            bindtap="handleRequestComplete"
+            size="mini"
+            type="primary"
+          >申请完成</button>
+          <button
+            wx:if="{{item.canReview}}"
+            class="btn-review"
+            data-id="{{item.id}}"
+            bindtap="goToReview"
+            size="mini"
+            type="primary"
+          >去评价</button>
         </view>
       </view>
     </view>

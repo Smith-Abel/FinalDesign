@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 
-from .models import User, Task, TaskStatus, Message, CreditDetail, Report, ReportStatus, ReportTargetType
+from .models import User, Task, TaskStatus, Message, CreditDetail, Report, ReportStatus, ReportTargetType, Notification, NotificationType
 from .serializers import (
     UserSerializer,
     TaskListSerializer,
@@ -24,6 +24,9 @@ from .serializers import (
     CreditDetailSerializer,
     ReportCreateSerializer,
     ReportListSerializer,
+    NotificationSerializer,
+    ReviewSerializer,
+    VerifyApplicationSerializer,
 )
 from . import services as credit_service
 
@@ -215,6 +218,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
         category = self.request.query_params.get('category')
         task_status = self.request.query_params.get('status')
         search_query = self.request.query_params.get('search')
+        target_college = self.request.query_params.get('target_college')
         ordering = self.request.query_params.get('ordering', '-created_at')
 
         if category:
@@ -223,6 +227,9 @@ class TaskListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(status=task_status)
         else:
             qs = qs.exclude(status__in=[TaskStatus.CANCELLED, TaskStatus.COMPLETED])
+            
+        if target_college:
+            qs = qs.filter(target_college=target_college)
             
         # 自动风控：过滤已被隐藏的任务
         qs = qs.filter(is_hidden=False)
@@ -271,29 +278,73 @@ class TaskAcceptView(APIView):
     """
 
     def post(self, request, pk):
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
 
-        if task.status != TaskStatus.OPEN:
-            return Response({'detail': '该任务当前不可接单'}, status=status.HTTP_400_BAD_REQUEST)
+            if task.status != TaskStatus.OPEN:
+                return Response({'detail': '该任务已被接单或不可接'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if task.publisher == request.user:
-            return Response({'detail': '不能接自己发布的任务'}, status=status.HTTP_400_BAD_REQUEST)
+            if task.publisher == request.user:
+                return Response({'detail': '不能接自己发布的任务'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 如果任务有悬赏，必须确保发布者积分足够（防止接单后无法支付）
-        reward = int(task.reward_amount)
-        if not credit_service.check_credits_sufficient(task.publisher, reward):
-            return Response(
-                {'detail': f'发布者积分不足，无法支付悬赏 {reward} 分'},
-                status=status.HTTP_400_BAD_REQUEST,
+            # 如果任务有悬赏，必须确保发布者积分足够（防止接单后无法支付）
+            reward = int(task.reward_amount)
+            if not credit_service.check_credits_sufficient(task.publisher, reward):
+                return Response(
+                    {'detail': f'发布者积分不足，无法支付悬赏 {reward} 分'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            task.worker = request.user
+            task.status = TaskStatus.IN_PROGRESS
+            task.save()
+
+            Notification.objects.create(
+                recipient=task.publisher,
+                notify_type=NotificationType.TASK_ACCEPTED,
+                content=f'您发布的任务「{task.title}」已被接单',
+                related_task=task
             )
 
-        task.worker = request.user
-        task.status = TaskStatus.IN_PROGRESS
-        task.save()
-        return Response({'detail': '接单成功', 'task': TaskDetailSerializer(task).data})
+            return Response({'detail': '接单成功', 'task': TaskDetailSerializer(task).data})
+
+
+class TaskRequestCompleteView(APIView):
+    """
+    POST /api/tasks/{id}/request_complete/ → 接单者申请完成任务
+    - 状态必须为 IN_PROGRESS
+    - 只能是接单者操作
+    """
+
+    def post(self, request, pk):
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+            if task.worker != request.user:
+                return Response({'detail': '只有接单者可以申请完成'}, status=status.HTTP_403_FORBIDDEN)
+
+            if task.status != TaskStatus.IN_PROGRESS:
+                return Response({'detail': '当前任务状态无法申请完成'}, status=status.HTTP_400_BAD_REQUEST)
+
+            task.status = TaskStatus.PENDING_CONFIRM
+            task.save()
+            
+            Notification.objects.create(
+                recipient=task.publisher,
+                notify_type=NotificationType.SYSTEM,
+                content=f'接单者已提交任务「{task.title}」的完成确认申请，请及时审核打款',
+                related_task=task
+            )
+
+            return Response({'detail': '已提交完成申请，等待发布者确认'})
 
 
 class TaskCompleteView(APIView):
@@ -304,33 +355,43 @@ class TaskCompleteView(APIView):
     """
 
     def post(self, request, pk):
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
 
-        if task.publisher != request.user:
-            return Response({'detail': '只有发布者可以确认完成'}, status=status.HTTP_403_FORBIDDEN)
+            if task.publisher != request.user:
+                return Response({'detail': '只有发布者可以确认完成'}, status=status.HTTP_403_FORBIDDEN)
 
-        if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.PENDING_CONFIRM):
-            return Response({'detail': '当前任务状态无法确认完成'}, status=status.HTTP_400_BAD_REQUEST)
+            if task.status not in (TaskStatus.IN_PROGRESS, TaskStatus.PENDING_CONFIRM):
+                return Response({'detail': '当前任务状态无法确认完成'}, status=status.HTTP_400_BAD_REQUEST)
 
-        task.status = TaskStatus.COMPLETED
-        task.save()
+            task.status = TaskStatus.COMPLETED
+            task.save()
 
-        # 检测接单者是否触发首次助人奖励
-        first_help_bonus = False
-        if task.worker:
-            first_help_bonus = credit_service.grant_first_help_bonus(task.worker)
+            # 检测接单者是否触发首次助人奖励
+            first_help_bonus = False
+            if task.worker:
+                first_help_bonus = credit_service.grant_first_help_bonus(task.worker)
 
-        # 执行悬赏积分转账（发布者 → 接单者）
-        reward_transferred = credit_service.transfer_task_reward(task)
+            # 执行悬赏积分转账（发布者 → 接单者）
+            reward_transferred = credit_service.transfer_task_reward(task)
+            
+            if task.worker:
+                Notification.objects.create(
+                    recipient=task.worker,
+                    notify_type=NotificationType.TASK_COMPLETED,
+                    content=f'您承接的任务「{task.title}」刚才已被发布者确认完成！',
+                    related_task=task
+                )
 
-        return Response({
-            'detail': '任务已标记为完成',
-            'first_help_bonus': first_help_bonus,
-            'reward_transferred': reward_transferred,
-        })
+            return Response({
+                'detail': '任务已标记为完成',
+                'first_help_bonus': first_help_bonus,
+                'reward_transferred': reward_transferred,
+            })
 
 
 class TaskCancelView(APIView):
@@ -342,46 +403,57 @@ class TaskCancelView(APIView):
     """
 
     def post(self, request, pk):
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
 
-        if task.publisher != request.user:
-            return Response({'detail': '只有发布者可以取消任务'}, status=status.HTTP_403_FORBIDDEN)
+            if task.publisher != request.user:
+                return Response({'detail': '只有发布者可以取消任务'}, status=status.HTTP_403_FORBIDDEN)
 
-        if task.status == TaskStatus.COMPLETED:
-            return Response({'detail': '已完成的任务无法取消'}, status=status.HTTP_400_BAD_REQUEST)
+            if task.status == TaskStatus.COMPLETED:
+                return Response({'detail': '已完成的任务无法取消'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if task.status == TaskStatus.CANCELLED:
-            return Response({'detail': '任务已经是取消状态'}, status=status.HTTP_400_BAD_REQUEST)
+            if task.status == TaskStatus.CANCELLED:
+                return Response({'detail': '任务已经是取消状态'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 发布任务取消不会返回手续费
-        refunded = False
+            # 发布任务取消由于有退费，后续可在 credit_service 中实现 refund_publish_fee
+            refunded = False
+            if task.status == TaskStatus.OPEN:
+                refunded = credit_service.refund_publish_fee(task.publisher, task.title)
 
-        task.status = TaskStatus.CANCELLED
-        task.save()
-        return Response({'detail': '任务已取消', 'fee_refunded': refunded})
+            task.status = TaskStatus.CANCELLED
+            task.save()
+            
+            if task.worker:
+                Notification.objects.create(
+                    recipient=task.worker,
+                    notify_type=NotificationType.TASK_CANCELLED,
+                    content=f'您承接的任务「{task.title}」已被发布者取消',
+                    related_task=task
+                )
+
+            return Response({'detail': '任务已取消', 'fee_refunded': refunded})
 
 
 class MyTaskListView(generics.ListAPIView):
     """
-    GET /api/tasks/mine/ → 获取当前用户发布的所有任务
-    支持 ?status= 过滤（如只看进行中的任务）
+    GET /api/tasks/mine/ → 获取当前用户相关的任务
+    支持 ?role=publisher/worker 过滤视角（默认 publisher）
+    支持 ?status= 过滤状态
     """
     serializer_class = TaskDetailSerializer
 
     def get_queryset(self):
         user = self.request.user
+        role = self.request.query_params.get('role', 'publisher')
         task_status = self.request.query_params.get('status')
 
-        if task_status in [TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED]:
-            # 进行中和已完成的列表：既展示发布的，也展示接手(worker)的
-            qs = Task.objects.filter(
-                Q(publisher=user) | Q(worker=user)
-            )
+        if role == 'worker':
+            qs = Task.objects.filter(worker=user)
         else:
-            # 发布的任务（status=""）
             qs = Task.objects.filter(publisher=user)
 
         if task_status:
@@ -696,3 +768,173 @@ class ReportListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Report.objects.filter(reporter=self.request.user)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 通知模块
+# ─────────────────────────────────────────────────────────────────────────────
+
+class NotificationListView(generics.ListAPIView):
+    """
+    GET /api/notifications/
+    获取当前用户的所有系统通知，按时间倒序排列。
+    """
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user)
+
+
+class NotificationReadView(APIView):
+    """
+    PATCH /api/notifications/{id}/read/
+    将单条通知标记为已读
+    """
+
+    def patch(self, request, pk):
+        try:
+            notification = Notification.objects.get(pk=pk, recipient=request.user)
+        except Notification.DoesNotExist:
+            return Response({'detail': '通知不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return Response({'detail': '已标记为已读'})
+
+
+class NotificationReadAllView(APIView):
+    """
+    POST /api/notifications/read-all/
+    将所有未读通知标记为已读
+    """
+
+    def post(self, request):
+        count = Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        return Response({'detail': f'已将 {count} 条通知标记为已读', 'updated_count': count})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 评价与雷达图模块
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ReviewCreateView(APIView):
+    """
+    POST /api/reviews/
+    为已完成的任务提交评价
+    """
+
+    def post(self, request):
+        task_id = request.data.get('task')
+        if not task_id:
+            return Response({'detail': '缺少任务ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            task = Task.objects.get(pk=task_id)
+        except Task.DoesNotExist:
+            return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if task.status != TaskStatus.COMPLETED:
+            return Response({'detail': '只能评价已完成的任务'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 确定评价方与被评价方
+        user = request.user
+        if user == task.publisher:
+            reviewee = task.worker
+        elif user == task.worker:
+            reviewee = task.publisher
+        else:
+            return Response({'detail': '非任务参与者无法进行评价'}, status=status.HTTP_403_FORBIDDEN)
+
+        # 检查是否已评价
+        from .models import Review
+        if Review.objects.filter(task=task, reviewer=user).exists():
+            return Response({'detail': '您已对该任务进行了评价'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(reviewer=user, reviewee=reviewee)
+        
+        Notification.objects.create(
+            recipient=reviewee,
+            notify_type=NotificationType.SYSTEM,
+            content=f'您收到了来自任务「{task.title}」的新评价！去主页看看吧',
+            related_task=task
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UserRadarView(APIView):
+    """
+    GET /api/users/{id}/radar/
+    获取指定用户的雷达图各项均分，以及他们收到的评价列表
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        from django.db.models import Avg
+        from .models import Review
+
+        aggs = Review.objects.filter(reviewee=user).aggregate(
+            avg_communication=Avg('rating_communication'),
+            avg_attitude=Avg('rating_attitude'),
+            avg_quality=Avg('rating_quality'),
+            avg_speed=Avg('rating_speed'),
+            avg_reliability=Avg('rating_reliability'),
+        )
+
+        # 解析均分，如果没被评价过默认为 5 分满分
+        radar_data = {
+            'communication': round(aggs['avg_communication'] or 5.0, 1),
+            'attitude': round(aggs['avg_attitude'] or 5.0, 1),
+            'quality': round(aggs['avg_quality'] or 5.0, 1),
+            'speed': round(aggs['avg_speed'] or 5.0, 1),
+            'reliability': round(aggs['avg_reliability'] or 5.0, 1),
+        }
+
+        # 获取前 20 条评价列表
+        reviews = Review.objects.filter(reviewee=user).select_related('reviewer').order_by('-created_at')[:20]
+        review_list = ReviewSerializer(reviews, many=True).data
+
+        return Response({
+            'radar': radar_data,
+            'reviews': review_list,
+            'total_reviews': Review.objects.filter(reviewee=user).count()
+        })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 认证审核模块
+# ─────────────────────────────────────────────────────────────────────────────
+
+class VerifyApplicationView(APIView):
+    """
+    GET  /api/verify/ → 获取当前用户的认证状态（最后一次申请或现有的审核进度）
+    POST /api/verify/ → 提交学生身份认证申请
+    """
+
+    def get(self, request):
+        from .models import VerifyApplication
+        app = VerifyApplication.objects.filter(user=request.user).order_by('-created_at').first()
+        if not app:
+            return Response(None)
+        return Response(VerifyApplicationSerializer(app).data)
+
+    def post(self, request):
+        from .models import VerifyApplication, VerifyStatus
+        
+        # Check active applications
+        active_status = [VerifyStatus.PENDING, VerifyStatus.APPROVED]
+        if VerifyApplication.objects.filter(user=request.user, status__in=active_status).exists():
+            return Response({'detail': '您已提交过申请或已经通过认证'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = VerifyApplicationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        app = serializer.save(user=request.user)
+        
+        return Response(VerifyApplicationSerializer(app).data, status=status.HTTP_201_CREATED)

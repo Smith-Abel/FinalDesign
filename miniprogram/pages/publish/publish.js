@@ -11,12 +11,15 @@ Page({
         ],
         form: {
             category: '',
+            target_college: '',
             title: '',
             content: '',
             tags: '',
             reward_amount: '0',
             images: [],
         },
+        collegeOptions: ['不限', '计算机学院', '经济管理学院', '机械工程学院', '电气工程学院', '理学院', '外国语学院', '建筑与设计学院'],
+        collegeIndex: 0,
         isLoading: false,
         myCredits: 0,
     },
@@ -45,6 +48,15 @@ Page({
     onInput(e) {
         const field = e.currentTarget.dataset.field
         this.setData({ [`form.${field}`]: e.detail.value })
+    },
+
+    onCollegeChange(e) {
+        const val = e.detail.value;
+        const target_college = val == 0 ? '' : this.data.collegeOptions[val];
+        this.setData({
+            collegeIndex: val,
+            'form.target_college': target_college
+        });
     },
 
     async chooseImage() {
@@ -129,7 +141,8 @@ Page({
             })
             // 清空表单
             this.setData({
-                form: { category: '', title: '', content: '', tags: '', reward_amount: '0', images: [] },
+                form: { category: '', target_college: '', title: '', content: '', tags: '', reward_amount: '0', images: [] },
+                collegeIndex: 0,
             })
             wx.showToast({
                 title: '发布成功！',

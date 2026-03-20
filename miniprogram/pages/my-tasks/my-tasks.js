@@ -3,17 +3,9 @@ const request = require('../../utils/request')
 const { debounce } = require('../../utils/debounce')
 
 // 状态 Tab 配置
-// 前端 tab key → API status 参数的映射
-const TAB_TO_STATUS = {
-    published: '',
-    in_progress: 'IN_PROGRESS',
-    completed: 'COMPLETED',
-}
-
 const STATUS_TABS = [
-    { key: 'published', label: '发布的任务' },
-    { key: 'in_progress', label: '进行中的任务' },
-    { key: 'completed', label: '完成的任务' },
+    { key: 'publisher', label: '我发布的' },
+    { key: 'worker', label: '我接取的' },
 ]
 
 const STATUS_MAP = {
@@ -24,21 +16,26 @@ const STATUS_MAP = {
     CANCELLED: { label: '已取消', cls: 'badge badge-cancel' },
 }
 
-function formatTask(t) {
+function formatTask(t, role) {
     const st = STATUS_MAP[t.status] || {}
+    const isPublisher = role === 'publisher';
+    const isWorker = role === 'worker';
     return {
         ...t,
         statusLabel: st.label || t.status,
         statusClass: st.cls || 'badge',
-        canEdit: t.status === 'OPEN',       // 只有待接单可编辑
-        canCancel: t.status !== 'COMPLETED' && t.status !== 'CANCELLED',
+        canEdit: t.status === 'OPEN' && isPublisher,       
+        canCancel: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && isPublisher,
+        canConfirm: (t.status === 'PENDING_CONFIRM' || t.status === 'IN_PROGRESS') && isPublisher,
+        canRequestComplete: t.status === 'IN_PROGRESS' && isWorker,
+        canReview: t.status === 'COMPLETED' && !t.is_reviewed,
     }
 }
 
 Page({
     data: {
         tabs: STATUS_TABS,
-        activeTab: 'published',
+        activeTab: 'publisher',
         tasks: [],
         isLoading: false,
         // 编辑弹窗相关
@@ -54,10 +51,10 @@ Page({
             return
         }
         // 支持从个人中心快捷入口携带 tab 参数直接定位
-        if (options.tab && TAB_TO_STATUS.hasOwnProperty(options.tab)) {
-            this.setData({ activeTab: options.tab })
+        if (options.tab === 'worker') {
+            this.setData({ activeTab: 'worker' })
         } else {
-            this.setData({ activeTab: 'published' })
+            this.setData({ activeTab: 'publisher' })
         }
     },
 
@@ -83,15 +80,12 @@ Page({
     async _loadTasks() {
         this.setData({ isLoading: true })
         try {
-            const { activeTab } = this.data
-            // 把前端 tab key 转成 API 需要的 status 值
-            const statusParam = TAB_TO_STATUS[activeTab] ?? activeTab
-            let url = '/api/tasks/mine/'
-            if (statusParam) url += `?status=${statusParam}`
+            const role = this.data.activeTab
+            let url = `/api/tasks/mine/?role=${role}`
 
             const res = await request.get(url)
             const list = Array.isArray(res) ? res : (res.results || [])
-            this.setData({ tasks: list.map(formatTask) })
+            this.setData({ tasks: list.map(t => formatTask(t, role)) })
         } catch (e) {
             console.error('加载我的任务失败', e)
         } finally {
@@ -102,6 +96,11 @@ Page({
     goToDetail(e) {
         const id = e.currentTarget.dataset.id
         wx.navigateTo({ url: `/pages/task-detail/task-detail?id=${id}` })
+    },
+
+    goToReview(e) {
+        const id = e.currentTarget.dataset.id
+        wx.navigateTo({ url: `/pages/review/review?taskId=${id}` })
     },
 
     // ── 编辑任务 ──
@@ -184,6 +183,46 @@ Page({
                     console.error('取消任务失败', e)
                 }
             },
+        })
+    },
+
+    // ── 确认完成（发布者） ──
+    handleConfirmComplete(e) {
+        const id = e.currentTarget.dataset.id
+        wx.showModal({
+            title: '确认完成',
+            content: '确认后，预付积分将转给接单者。操作不可逆，请核实任务是否真正完成！',
+            confirmColor: '#07C160',
+            success: async ({ confirm }) => {
+                if (!confirm) return
+                try {
+                    await request.post(`/api/tasks/${id}/complete/`)
+                    wx.showToast({ title: '已确认完成', icon: 'success' })
+                    await this._loadTasks()
+                } catch (err) {
+                    console.error('确认完成失败', err)
+                }
+            }
+        })
+    },
+
+    // ── 申请完成（接单者） ──
+    handleRequestComplete(e) {
+        const id = e.currentTarget.dataset.id
+        wx.showModal({
+            title: '申请完成',
+            content: '是否确实已完成任务，并通知发布者验收打款？',
+            confirmColor: '#07C160',
+            success: async ({ confirm }) => {
+                if (!confirm) return
+                try {
+                    await request.post(`/api/tasks/${id}/request_complete/`)
+                    wx.showToast({ title: '已发送申请', icon: 'success' })
+                    await this._loadTasks()
+                } catch (err) {
+                    console.error('申请完成失败', err)
+                }
+            }
         })
     },
 })

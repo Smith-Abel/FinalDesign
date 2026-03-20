@@ -1,0 +1,68 @@
+<view class="page">
+  <view class="header">
+    <text class="title">学生身份认证</text>
+    <text class="subtitle">认证后将解锁发布任务等更多权限</text>
+  </view>
+
+  <view wx:if="{{isLoading}}" class="loading-state">
+    <view class="loading-dot"></view>
+    <text>正在查询认证信息...</text>
+  </view>
+  
+  <block wx:else>
+    <!-- 已认证状态 -->
+    <view wx:if="{{application && application.status === 'APPROVED'}}" class="status-card approved">
+      <view class="icon-wrap">✅</view>
+      <view class="status-title">认证已通过</view>
+      <view class="status-desc">您已完成学生认证，真实姓名：{{application.real_name}}</view>
+    </view>
+
+    <!-- 待审核状态 -->
+    <view wx:elif="{{application && application.status === 'PENDING'}}" class="status-card pending">
+      <view class="icon-wrap">⏳</view>
+      <view class="status-title">审核中</view>
+      <view class="status-desc">您的资料已提交，请耐心等待管理员审核（通常在1个工作日内完成）。</view>
+    </view>
+
+    <!-- 被驳回或未提交状态 -->
+    <view wx:else class="form-container">
+      <view wx:if="{{application && application.status === 'REJECTED'}}" class="reject-alert">
+        <text class="alert-title">上一次认证被驳回</text>
+        <text class="alert-desc">原因：{{application.note || '资料不符合要求'}}</text>
+        <text class="alert-tip">请重新提交真实的证件信息。</text>
+      </view>
+
+      <view class="form-section">
+        <text class="label">真实姓名 <text class="required">*</text></text>
+        <input 
+          class="input" 
+          placeholder="请输入证件上的真实姓名" 
+          value="{{form.real_name}}"
+          bindinput="onInput"
+          data-field="real_name"
+        />
+      </view>
+
+      <view class="form-section">
+        <text class="label">校园卡 / 学生证面 <text class="required">*</text></text>
+        <view class="upload-area" bindtap="chooseImage">
+          <image wx:if="{{form.student_id_image}}" src="{{form.student_id_image}}" class="preview-img" mode="aspectFit" />
+          <view wx:else class="upload-placeholder">
+            <text class="upload-icon">📷</text>
+            <text class="upload-text">点击上传证件完整清晰面</text>
+          </view>
+        </view>
+      </view>
+
+      <button 
+        class="submit-btn" 
+        bindtap="handleSubmit" 
+        loading="{{isSubmitting}}"
+        disabled="{{isSubmitting}}"
+      >
+        提交认证
+      </button>
+      <view class="safe-note">🛡️ 您的证件信息仅用于身份核实，平台将严格保密。</view>
+    </view>
+  </block>
+</view>

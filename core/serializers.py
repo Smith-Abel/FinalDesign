@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Task, Message, CreditDetail, Report, ReportReason, ReportStatus
+from .models import User, Task, Message, CreditDetail, Report, ReportReason, ReportStatus, Notification, NotificationType, Review, VerifyApplication
 
 
 # ───────── 用户序列化器 ─────────
@@ -40,12 +40,13 @@ class TaskListSerializer(serializers.ModelSerializer):
     publisher_name = serializers.SerializerMethodField()
     publisher_avatar = serializers.URLField(source='publisher.avatar', read_only=True)
     cover_image = serializers.SerializerMethodField()
+    is_reviewed = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
         fields = [
-            'id', 'category', 'title', 'tags',
-            'reward_amount', 'status', 'publisher_name', 'publisher_avatar', 'created_at', 'cover_image',
+            'id', 'category', 'target_college', 'title', 'tags',
+            'reward_amount', 'status', 'publisher_name', 'publisher_avatar', 'created_at', 'cover_image', 'is_reviewed',
         ]
 
     def get_cover_image(self, obj):
@@ -56,21 +57,34 @@ class TaskListSerializer(serializers.ModelSerializer):
     def get_publisher_name(self, obj):
         return obj.publisher.nickname or obj.publisher.username
 
+    def get_is_reviewed(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.reviews.filter(reviewer=request.user).exists()
+
 
 class TaskDetailSerializer(serializers.ModelSerializer):
     """详情页使用的完整序列化器"""
     publisher = UserSerializer(read_only=True)
     worker = UserSerializer(read_only=True)
+    is_reviewed = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
         fields = [
-            'id', 'category', 'title', 'content', 'tags',
+            'id', 'category', 'target_college', 'title', 'content', 'tags',
             'reward_amount', 'status', 'publisher', 'worker',
             'latitude', 'longitude', 'location_name', 'images',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'is_reviewed',
         ]
         read_only_fields = ['id', 'status', 'publisher', 'worker', 'created_at', 'updated_at']
+
+    def get_is_reviewed(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.reviews.filter(reviewer=request.user).exists()
 
 
 class TaskCreateSerializer(serializers.ModelSerializer):
@@ -79,7 +93,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'id', 'category', 'title', 'content', 'tags', 'reward_amount',
+            'id', 'category', 'target_college', 'title', 'content', 'tags', 'reward_amount',
             'latitude', 'longitude', 'location_name', 'images',
         ]
         read_only_fields = ['id']
@@ -101,7 +115,7 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'title', 'content', 'tags', 'reward_amount',
+            'target_college', 'title', 'content', 'tags', 'reward_amount',
             'latitude', 'longitude', 'location_name', 'images',
         ]
 
@@ -175,3 +189,47 @@ class ReportListSerializer(serializers.ModelSerializer):
 
     def get_reason_label(self, obj):
         return dict(ReportReason.choices).get(obj.reason, obj.reason)
+
+
+# ───────── 通知序列化器 ─────────
+
+class NotificationSerializer(serializers.ModelSerializer):
+    notify_type_label = serializers.SerializerMethodField()
+    related_task_id = serializers.IntegerField(source='related_task.id', read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'notify_type', 'notify_type_label', 'content', 'related_task_id', 'is_read', 'created_at'
+        ]
+
+    def get_notify_type_label(self, obj):
+        return dict(NotificationType.choices).get(obj.notify_type, obj.notify_type)
+
+
+# ───────── 评价序列化器 ─────────
+
+class ReviewSerializer(serializers.ModelSerializer):
+    reviewer_name = serializers.SerializerMethodField()
+    reviewer_avatar = serializers.URLField(source='reviewer.avatar', read_only=True, default='')
+
+    class Meta:
+        model = Review
+        fields = [
+            'id', 'task', 'reviewer', 'reviewer_name', 'reviewer_avatar', 'reviewee',
+            'rating_communication', 'rating_attitude', 'rating_quality', 'rating_speed', 'rating_reliability',
+            'comment', 'created_at'
+        ]
+        read_only_fields = ['id', 'reviewer', 'reviewee', 'created_at']
+
+    def get_reviewer_name(self, obj):
+        return obj.reviewer.nickname or obj.reviewer.username
+
+
+# ───────── 认证申请序列化器 ─────────
+
+class VerifyApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VerifyApplication
+        fields = ['id', 'real_name', 'student_id_image', 'status', 'note', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'status', 'note', 'created_at', 'updated_at']

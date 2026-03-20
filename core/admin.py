@@ -69,3 +69,30 @@ class TaskAdmin(admin.ModelAdmin):
     @admin.display(description='任务图片预览')
     def images_preview(self, obj):
         return render_images_html(obj.images)
+
+
+from .models import VerifyApplication, VerifyStatus, User
+
+@admin.register(VerifyApplication)
+class VerifyApplicationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'real_name', 'status', 'created_at']
+    list_filter = ['status']
+    search_fields = ['user__username', 'real_name']
+    list_editable = ['status']
+    
+    readonly_fields = ['id', 'user', 'student_id_image_preview', 'created_at']
+    fields = ['id', 'user', 'real_name', 'student_id_image_preview', 'status', 'note', 'created_at']
+
+    @admin.display(description='证件照片')
+    def student_id_image_preview(self, obj):
+        if not obj.student_id_image:
+            return mark_safe('<span style="color:#999;">无图片</span>')
+        return mark_safe(f'<a href="{obj.student_id_image}" target="_blank">'
+                         f'<img src="{obj.student_id_image}" style="max-height:200px;border-radius:4px;"/></a>')
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.status == VerifyStatus.APPROVED:
+            User.objects.filter(pk=obj.user.pk).update(is_verified=True)
+        elif obj.status == VerifyStatus.REJECTED:
+            User.objects.filter(pk=obj.user.pk).update(is_verified=False)

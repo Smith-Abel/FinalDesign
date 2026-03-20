@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互助系统 - 管理终端</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="glass-panel login-box">
+            <div class="logo-area">
+                <div class="logo-icon">✨</div>
+                <h2>Campus Admin</h2>
+                <p>校园互助运营管理台</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label>管理账号</label>
+                    <input type="text" id="username" placeholder="请输入超级管理员账号" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>安全密码</label>
+                    <input type="password" id="password" placeholder="请输入密码" required autocomplete="current-password">
+                </div>
+                <div class="error-msg" id="loginError"></div>
+                <button type="submit" class="btn-primary login-btn" id="submitBtn">登录认证</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

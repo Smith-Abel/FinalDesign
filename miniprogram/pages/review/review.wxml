@@ -1,0 +1,42 @@
+<view class="page">
+  <view class="header">
+    <text class="title">为合作方打分</text>
+    <text class="subtitle">您的客观评价将帮助其他同学作为重要参考</text>
+  </view>
+
+  <view class="rating-card">
+    <view class="rating-item" wx:for="{{dimensions}}" wx:key="key" wx:for-item="dim">
+      <view class="dim-label">{{dim.label}}</view>
+      <view class="stars">
+        <text 
+          wx:for="{{5}}" 
+          wx:key="*this"
+          class="star {{item < form[dim.key] ? 'star-active' : ''}}"
+          bindtap="onStarTap"
+          data-key="{{dim.key}}"
+          data-val="{{item + 1}}"
+        >★</text>
+      </view>
+      <view class="dim-score">{{form[dim.key]}} 分</view>
+    </view>
+  </view>
+
+  <view class="comment-card">
+    <text class="comment-title">文字评价</text>
+    <textarea 
+      class="comment-box" 
+      placeholder="写下您的合作感受吧..." 
+      maxlength="200"
+      bindinput="onCommentInput"
+    ></textarea>
+  </view>
+
+  <view class="submit-bar safe-area-bottom">
+    <button class="btn-primary {{isSubmitting ? 'disabled' : ''}}" 
+            bindtap="handleSubmit" 
+            loading="{{isSubmitting}}" 
+            disabled="{{isSubmitting}}">
+      提交评价
+    </button>
+  </view>
+</view>

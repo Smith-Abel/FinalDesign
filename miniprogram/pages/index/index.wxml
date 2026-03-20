@@ -34,6 +34,11 @@
 
     <!-- 排序操作 -->
     <view class="sort-bar">
+      <picker mode="selector" range="{{collegeOptions}}" value="{{collegeIndex}}" bindchange="onCollegeFilterChange">
+        <view class="sort-item {{activeCollege ? 'sort-active' : ''}}">
+          <text>{{activeCollege || '全部学院'}} ▾</text>
+        </view>
+      </picker>
       <view class="sort-item {{sortType === '-created_at' ? 'sort-active' : ''}}" bindtap="onSortChange" data-type="-created_at">
         <text>最新发布</text>
       </view>

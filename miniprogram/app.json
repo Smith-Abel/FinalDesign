@@ -9,7 +9,10 @@
         "pages/credits/credits",
         "pages/my-tasks/my-tasks",
         "pages/report/report",
-        "pages/my-reports/my-reports"
+        "pages/my-reports/my-reports",
+        "pages/notifications/notifications",
+        "pages/review/review",
+        "pages/verify/verify"
     ],
     "tabBar": {
         "color": "#606266",

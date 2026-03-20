@@ -753,3 +753,175 @@ class CreditPaymentTest(TestCase):
         detail_resp = self.client.get(f'/api/tasks/{resp.data["id"]}/')
         self.assertEqual(detail_resp.data['location_name'], '天安门广场')
         self.assertIsNotNone(detail_resp.data['latitude'])
+
+
+class NotificationModuleTest(TestCase):
+    """通知模块测试"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='u_noti', password='pw')
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(self.user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        from .models import Notification, NotificationType
+        Notification.objects.create(
+            recipient=self.user,
+            notify_type=NotificationType.SYSTEM,
+            content='Test Notification 1'
+        )
+        Notification.objects.create(
+            recipient=self.user,
+            notify_type=NotificationType.TASK_ACCEPTED,
+            content='Test Notification 2'
+        )
+
+    def test_list_notifications(self):
+        resp = self.client.get('/api/notifications/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        # Check that there are 2 notifications
+        data = resp.data.get('results', resp.data) if isinstance(resp.data, dict) and 'results' in resp.data else resp.data
+        self.assertEqual(len(data), 2)
+        self.assertFalse(data[0]['is_read'])
+
+    def test_read_single_notification(self):
+        from .models import Notification
+        notif = Notification.objects.filter(recipient=self.user).first()
+        resp = self.client.patch(f'/api/notifications/{notif.pk}/read/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        notif.refresh_from_db()
+        self.assertTrue(notif.is_read)
+
+    def test_read_all_notifications(self):
+        resp = self.client.post('/api/notifications/read-all/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['updated_count'], 2)
+        from .models import Notification
+        self.assertEqual(Notification.objects.filter(recipient=self.user, is_read=False).count(), 0)
+
+
+class ReviewModuleTest(TestCase):
+    """评价与雷达图模块测试"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = User.objects.create_user(username='rev_pub', password='pw')
+        self.user2 = User.objects.create_user(username='rev_wkr', password='pw')
+        
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(self.user1).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        self.task = Task.objects.create(
+            publisher=self.user1,
+            worker=self.user2,
+            category=TaskCategory.HELP,
+            title='评价测试任务',
+            status=TaskStatus.COMPLETED
+        )
+
+    def test_submit_review_success(self):
+        from .models import Review
+        resp = self.client.post('/api/reviews/', {
+            'task': self.task.pk,
+            'rating_communication': 5,
+            'rating_attitude': 4,
+            'rating_quality': 5,
+            'rating_speed': 3,
+            'rating_reliability': 5,
+            'comment': '合作很愉快'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Review.objects.count(), 1)
+        r = Review.objects.first()
+        self.assertEqual(r.reviewer, self.user1)
+        self.assertEqual(r.reviewee, self.user2)
+
+    def test_duplicate_review_fails(self):
+        from .models import Review
+        self.client.post('/api/reviews/', {
+            'task': self.task.pk,
+            'comment': 'first'
+        })
+        resp = self.client.post('/api/reviews/', {
+            'task': self.task.pk,
+            'comment': 'second'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Review.objects.count(), 1)
+
+    def test_outsider_cannot_review(self):
+        outsider = User.objects.create_user(username='outsider', password='pw')
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(outsider).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        resp = self.client.post('/api/reviews/', {
+            'task': self.task.pk,
+            'comment': 'test'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_radar_view(self):
+        from .models import Review
+        # Create some reviews for user2
+        Review.objects.create(
+            task=self.task, reviewer=self.user1, reviewee=self.user2,
+            rating_communication=4, rating_attitude=5, rating_quality=4, rating_speed=5, rating_reliability=4
+        )
+        task2 = Task.objects.create(publisher=self.user2, worker=self.user1, status=TaskStatus.COMPLETED)
+        Review.objects.create(
+            task=task2, reviewer=self.user1, reviewee=self.user2,
+            rating_communication=5, rating_attitude=3, rating_quality=4, rating_speed=4, rating_reliability=5
+        )
+
+        # anyone can view radar
+        self.client.credentials() 
+        resp = self.client.get(f'/api/users/{self.user2.pk}/radar/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        radar = resp.data['radar']
+        self.assertEqual(radar['communication'], 4.5)
+        self.assertEqual(radar['attitude'], 4.0)
+        self.assertEqual(radar['quality'], 4.0)
+        self.assertEqual(radar['speed'], 4.5)
+        self.assertEqual(radar['reliability'], 4.5)
+        self.assertEqual(resp.data['total_reviews'], 2)
+
+
+class VerifyModuleTest(TestCase):
+    """学生认证模块测试"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='test_verify', password='pw')
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(self.user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+    def test_verify_application_lifecycle(self):
+        from .models import VerifyApplication
+
+        # 1. initially None
+        resp = self.client.get('/api/verify/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsNone(resp.data)
+
+        # 2. post Application
+        resp = self.client.post('/api/verify/', {
+            'real_name': '张三',
+            'student_id_image': 'http://test.image'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data['status'], 'PENDING')
+
+        # 3. auto-block duplicate active application
+        resp = self.client.post('/api/verify/', {
+            'real_name': '李四',
+            'student_id_image': 'http://test.image2'
+        })
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 4. Get current application
+        resp = self.client.get('/api/verify/')
+        self.assertEqual(resp.data['status'], 'PENDING')
+        self.assertEqual(resp.data['real_name'], '张三')

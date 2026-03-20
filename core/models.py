@@ -47,6 +47,7 @@ class Task(models.Model):
     publisher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='published_tasks', verbose_name="发单者")
     worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='accepted_tasks', verbose_name="接单者")
     category = models.CharField(max_length=20, choices=TaskCategory.choices, verbose_name="任务分类")
+    target_college = models.CharField(max_length=100, null=True, blank=True, verbose_name="目标学院", help_text="留空则全校可见")
     title = models.CharField(max_length=100, verbose_name="标题")
     content = models.TextField(verbose_name="详细内容")
     tags = models.CharField(max_length=200, blank=True, verbose_name="标签")
@@ -129,5 +130,67 @@ class Report(models.Model):
 
     class Meta:
         verbose_name = "举报记录"
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+
+class NotificationType(models.TextChoices):
+    SYSTEM = 'SYSTEM', '系统通知'
+    TASK_ACCEPTED = 'TASK_ACCEPTED', '接单提醒'
+    TASK_COMPLETED = 'TASK_COMPLETED', '任务完成'
+    TASK_CANCELLED = 'TASK_CANCELLED', '任务取消'
+    NEW_MESSAGE = 'NEW_MESSAGE', '新私信'
+
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', verbose_name="接收者")
+    notify_type = models.CharField(max_length=20, choices=NotificationType.choices, default=NotificationType.SYSTEM, verbose_name="通知类型")
+    content = models.TextField(verbose_name="通知内容")
+    related_task = models.ForeignKey(Task, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="关联任务")
+    is_read = models.BooleanField(default=False, verbose_name="是否已读")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="发送时间")
+
+    class Meta:
+        verbose_name = "系统通知"
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+
+class Review(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='reviews', verbose_name="关联任务")
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_reviews', verbose_name="评价者")
+    reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_reviews', verbose_name="被评价者")
+    rating_communication = models.IntegerField(default=5, verbose_name="沟通交流")
+    rating_attitude = models.IntegerField(default=5, verbose_name="服务态度")
+    rating_quality = models.IntegerField(default=5, verbose_name="完成质量")
+    rating_speed = models.IntegerField(default=5, verbose_name="响应速度")
+    rating_reliability = models.IntegerField(default=5, verbose_name="诚信可靠")
+    comment = models.TextField(blank=True, verbose_name="评语")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="评价时间")
+
+    class Meta:
+        verbose_name = "任务评价"
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+        unique_together = ('task', 'reviewer')
+
+
+class VerifyStatus(models.TextChoices):
+    PENDING = 'PENDING', '待审核'
+    APPROVED = 'APPROVED', '已通过'
+    REJECTED = 'REJECTED', '已驳回'
+
+
+class VerifyApplication(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verify_applications', verbose_name="申请人")
+    real_name = models.CharField(max_length=50, verbose_name="真实姓名")
+    student_id_image = models.URLField(verbose_name="校园卡/学生证照片")
+    status = models.CharField(max_length=15, choices=VerifyStatus.choices, default=VerifyStatus.PENDING, verbose_name="审核状态")
+    note = models.TextField(blank=True, verbose_name="管理员审核说明")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="申请时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="处理时间")
+
+    class Meta:
+        verbose_name = "学生认证申请"
         verbose_name_plural = verbose_name
         ordering = ['-created_at']

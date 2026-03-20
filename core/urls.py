@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path('tasks/<int:pk>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('tasks/<int:pk>/edit/', views.TaskUpdateView.as_view(), name='task-edit'),
     path('tasks/<int:pk>/accept/', views.TaskAcceptView.as_view(), name='task-accept'),
+    path('tasks/<int:pk>/request_complete/', views.TaskRequestCompleteView.as_view(), name='task-request-complete'),
     path('tasks/<int:pk>/complete/', views.TaskCompleteView.as_view(), name='task-complete'),
     path('tasks/<int:pk>/cancel/', views.TaskCancelView.as_view(), name='task-cancel'),
     path('tasks/<int:pk>/qrcode/', views.TaskQRCodeView.as_view(), name='task-qrcode'),
@@ -34,5 +35,20 @@ urlpatterns = [
     # ── 举报模块 ──
     path('reports/', views.ReportCreateView.as_view(), name='report-create'),
     path('reports/mine/', views.ReportListView.as_view(), name='report-mine'),
+
+    # ── 通知模块 ──
+    path('notifications/', views.NotificationListView.as_view(), name='notification-list'),
+    path('notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
+    path('notifications/read-all/', views.NotificationReadAllView.as_view(), name='notification-read-all'),
+
+    # ── 评价模块 ──
+    path('reviews/', views.ReviewCreateView.as_view(), name='review-create'),
+    path('users/<int:pk>/radar/', views.UserRadarView.as_view(), name='user-radar'),
+
+    # ── 学生认证模块 ──
+    path('verify/', views.VerifyApplicationView.as_view(), name='verify-application'),
+
+    # ── Web 控制台专用模块 (权限强管控) ──
+    path('manage/', include('core.manage_urls')),
 ]
 

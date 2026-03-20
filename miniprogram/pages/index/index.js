@@ -54,6 +54,9 @@ Page({
         searchKeyword: '',
         searchInput: '',
         sortType: '-created_at', // default sort
+        collegeOptions: ['全部学院', '计算机学院', '经济管理学院', '机械工程学院', '电气工程学院', '理学院', '外国语学院', '建筑与设计学院'],
+        collegeIndex: 0,
+        activeCollege: '',
     },
 
     onLoad() {
@@ -110,6 +113,16 @@ Page({
         this._loadTasks(true)
     },
 
+    onCollegeFilterChange(e) {
+        const val = e.detail.value;
+        const target_college = val == 0 ? '' : this.data.collegeOptions[val];
+        this.setData({
+            collegeIndex: val,
+            activeCollege: target_college
+        });
+        this._loadTasks(true);
+    },
+
     async _loadTasks(reset) {
         if (reset) {
             this.setData({ page: 1, hasMore: true, isLoading: true })
@@ -118,10 +131,11 @@ Page({
         }
 
         try {
-            const { activeTab, page, searchKeyword, sortType } = this.data
+            const { activeTab, page, searchKeyword, sortType, activeCollege } = this.data
             let queryStr = `page=${page}&page_size=10&ordering=${sortType}`
             if (activeTab) queryStr += `&category=${activeTab}`
             if (searchKeyword) queryStr += `&search=${encodeURIComponent(searchKeyword)}`
+            if (activeCollege) queryStr += `&target_college=${encodeURIComponent(activeCollege)}`
 
             const res = await request.get(`/api/tasks/?${queryStr}`)
             // 兼容分页和普通数组两种响应格式

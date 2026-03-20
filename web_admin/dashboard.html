@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互助系统 - 管理中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="dashboard-body">
+    
+    <!-- 侧边栏 -->
+    <aside class="sidebar glass-panel">
+        <div class="sidebar-logo">
+            <span class="logo-icon">✨</span>
+            <span class="logo-text">Campus Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-view="dashboard">
+                <span class="nav-icon">📊</span> 概览看板
+            </a>
+            <a href="#" class="nav-item" data-view="users">
+                <span class="nav-icon">👥</span> 用户管理
+            </a>
+            <a href="#" class="nav-item" data-view="verifies">
+                <span class="nav-icon">🎓</span> 学生审核
+            </a>
+            <a href="#" class="nav-item" data-view="tasks">
+                <span class="nav-icon">📋</span> 任务大厅
+            </a>
+            <a href="#" class="nav-item" data-view="reports">
+                <span class="nav-icon">🚩</span> 举报工单
+            </a>
+        </nav>
+        
+        <div class="sidebar-bottom">
+            <a href="#" class="nav-item danger-text" id="logoutBtn">
+                <span class="nav-icon">🚪</span> 退出登录
+            </a>
+        </div>
+    </aside>
+
+    <!-- 主体区 -->
+    <main class="main-content">
+        <!-- 顶部条 -->
+        <header class="topbar glass-panel">
+            <h2 id="pageTitle" class="page-title">概览看板</h2>
+            <div class="topbar-right">
+                <div class="admin-profile">
+                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=admin" alt="avatar" class="admin-avatar">
+                    <span class="admin-name">Super Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 视图容器 -->
+        <div class="view-container" id="viewContainer">
+            <!-- 动态渲染内容 -->
+        </div>
+    </main>
+
+    <!-- 挂载模板 (通过 JS 渲染) -->
+    
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
