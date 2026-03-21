@@ -1,0 +1,40 @@
+.page {
+  background: var(--color-bg-page);
+  min-height: 100vh;
+  padding-top: 20rpx;
+}
+
+.settings-group {
+  background: #fff;
+  margin: 0 20rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.settings-cell {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.settings-cell:last-child {
+  border-bottom: none;
+}
+
+.cell-label {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--color-text-primary);
+}
+
+.cell-value {
+  font-size: 28rpx;
+  color: var(--color-text-secondary);
+  margin-right: 16rpx;
+}
+
+.cell-arrow {
+  color: var(--color-text-placeholder);
+  font-size: 32rpx;
+}

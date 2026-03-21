@@ -12,7 +12,8 @@
         "pages/my-reports/my-reports",
         "pages/notifications/notifications",
         "pages/review/review",
-        "pages/verify/verify"
+        "pages/verify/verify",
+        "pages/settings/settings"
     ],
     "tabBar": {
         "color": "#606266",

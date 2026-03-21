@@ -187,6 +187,53 @@ body {
   min-height: 20px;
   margin-bottom: 15px;
   text-align: center;
+  transition: all 0.3s ease;
+}
+
+/* 密码错误时抖动动画 */
+.error-msg.shake {
+  animation: shakeError 0.4s ease;
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+/* ── 密码输入框包裹层（含小眼睛）── */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* 让密码框占满宽度，右侧留出眼睛按钮空间 */
+.input-wrapper input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+/* 小眼睛切换按钮 */
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.eye-btn:hover {
+  color: var(--primary-color);
 }
 
 /* ================= Dashboard Layout ================= */
@@ -629,6 +676,36 @@ body {
 .search-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrapper .search-input {
+  padding-right: 40px; /* 留出放大镜图标位置 */
+}
+
+.search-icon-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.search-icon-btn:hover {
+  color: var(--primary-color);
+  background: rgba(64, 158, 255, 0.1);
 }
 
 /* ================= 概览看板联动卡片 ================= */

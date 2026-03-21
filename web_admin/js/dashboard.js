@@ -254,7 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-                <input type="text" id="userSearchInput" placeholder="按用户名或昵称搜索..." value="${state.q}" class="search-input" style="flex: 1; min-width: 200px;">
+                <div class="search-input-wrapper" style="flex: 1; min-width: 200px;">
+                    <input type="text" id="userSearchInput" placeholder="按用户名或昵称搜索..." value="${state.q}" class="search-input" style="width: 100%;">
+                    <button id="userSearchBtn" class="search-icon-btn" title="筛选检索">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
                 <select id="userActiveSelect" class="search-input" style="width: auto; min-width: 140px;">
                     <option value="">所有管控状态</option>
                     <option value="true" ${state.is_active === 'true' ? 'selected' : ''}>正常</option>
@@ -266,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="-credit_score" ${state.ordering === '-credit_score' ? 'selected' : ''}>积分最多优先</option>
                     <option value="credit_score" ${state.ordering === 'credit_score' ? 'selected' : ''}>积分最少优先</option>
                 </select>
-                <button id="userSearchBtn" class="btn-micro" style="white-space: nowrap;">筛选检索</button>
             </div>
             <div class="card table-card">
                 <table class="data-table">
@@ -432,7 +436,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-                <input type="text" id="taskSearchInput" placeholder="按标题内容筛选..." value="${state.q}" class="search-input" style="flex: 1; min-width: 150px;">
+                <div class="search-input-wrapper" style="flex: 1; min-width: 150px;">
+                    <input type="text" id="taskSearchInput" placeholder="按标题内容筛选..." value="${state.q}" class="search-input" style="width: 100%;">
+                    <button id="taskSearchBtn" class="search-icon-btn" title="筛选检索">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
                 <select id="taskCatSelect" class="search-input" style="width: auto; min-width: 120px;">
                     <option value="">全部分类</option>
                     <option value="帮我跑腿" ${state.category === '帮我跑腿' ? 'selected' : ''}>帮我跑腿</option>
@@ -460,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="-reward_amount" ${state.ordering === '-reward_amount' ? 'selected' : ''}>赏金最高优先</option>
                     <option value="reward_amount" ${state.ordering === 'reward_amount' ? 'selected' : ''}>赏金最低优先</option>
                 </select>
-                <button id="taskSearchBtn" class="btn-micro" style="white-space: nowrap;">筛选检索</button>
             </div>
             <div class="card table-card">
                 <table class="data-table">

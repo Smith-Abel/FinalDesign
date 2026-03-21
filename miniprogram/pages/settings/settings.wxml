@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="settings-group">
+    <view class="settings-cell" bindtap="clearCache">
+      <view class="cell-label">清除缓存</view>
+      <view class="cell-value">{{cacheSize}}</view>
+      <view class="cell-arrow">›</view>
+    </view>
+    <view class="settings-cell" bindtap="showAbout">
+      <view class="cell-label">关于系统</view>
+      <view class="cell-arrow">›</view>
+    </view>
+    <view class="settings-cell" bindtap="contactUs">
+      <view class="cell-label">联系我们</view>
+      <view class="cell-arrow">›</view>
+    </view>
+    <view class="settings-cell">
+      <view class="cell-label">当前版本</view>
+      <view class="cell-value">v1.0.0</view>
+    </view>
+  </view>
+</view>

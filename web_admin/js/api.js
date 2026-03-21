@@ -38,10 +38,12 @@ class ApiClient {
             });
 
             if (response.status === 401) {
-                // Token 过期或无效，强制跳回登录页
-                this.clearToken();
-                window.location.href = 'index.html';
-                return null;
+                // 如果是请求登录接口时帐号密码错误引起的 401，则不触发全局拦截和跳转重载
+                if (endpoint !== '/auth/login/') {
+                    this.clearToken();
+                    window.location.href = 'index.html';
+                    return null;
+                }
             }
 
             let data;

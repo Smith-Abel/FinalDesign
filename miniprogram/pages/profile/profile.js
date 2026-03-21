@@ -64,101 +64,101 @@ Page({
     drawRadar(radar) {
         const query = wx.createSelectorQuery()
         query.select('#radarCanvas')
-             .fields({ node: true, size: true })
-             .exec((res) => {
-                 if (!res[0] || !res[0].node) return;
-                 const canvas = res[0].node
-                 const ctx = canvas.getContext('2d')
-                 const dpr = wx.getSystemInfoSync().pixelRatio
-                 const w = res[0].width
-                 const h = res[0].height
-                 
-                 canvas.width = w * dpr
-                 canvas.height = h * dpr
-                 ctx.scale(dpr, dpr)
-                 
-                 const centerX = w / 2
-                 const centerY = h / 2 + 10
-                 const radius = Math.min(w, h) / 2 - 35
-                 
-                 const dims = [
-                     { k: 'communication', n: '沟通' },
-                     { k: 'attitude', n: '态度' },
-                     { k: 'reliability', n: '诚信' },
-                     { k: 'speed', n: '速度' },
-                     { k: 'quality', n: '质量' },
-                 ]
-                 const num = dims.length
-                 const angles = dims.map((_, i) => (Math.PI * 2 * i / num) - Math.PI / 2)
-                 
-                 // 绘制底图网格 (5层)
-                 ctx.strokeStyle = '#ebeef5'
-                 ctx.fillStyle = '#fbfcfd'
-                 for(let level = 5; level >= 1; level--) {
-                     const r = radius * (level / 5)
-                     ctx.beginPath()
-                     for(let i = 0; i < num; i++) {
-                         const x = centerX + r * Math.cos(angles[i])
-                         const y = centerY + r * Math.sin(angles[i])
-                         if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-                     }
-                     ctx.closePath()
-                     ctx.fill()
-                     ctx.stroke()
-                 }
-                 
-                 // 画轴线
-                 ctx.strokeStyle = '#ebeef5'
-                 for(let i = 0; i < num; i++) {
-                     ctx.beginPath()
-                     ctx.moveTo(centerX, centerY)
-                     ctx.lineTo(centerX + radius * Math.cos(angles[i]), centerY + radius * Math.sin(angles[i]))
-                     ctx.stroke()
-                 }
-                 
-                 // 画文字
-                 ctx.fillStyle = '#606266'
-                 ctx.font = '12px sans-serif'
-                 ctx.textAlign = 'center'
-                 ctx.textBaseline = 'middle'
-                 for(let i = 0; i < num; i++) {
-                     const val = radar[dims[i].k] || 5.0
-                     let txtR = radius + 20
-                     if (i === 0) txtR = radius + 15
-                     const x = centerX + txtR * Math.cos(angles[i])
-                     const y = centerY + txtR * Math.sin(angles[i])
-                     ctx.fillText(`${dims[i].n} ${val}`, x, y)
-                 }
-                 
-                 // 画得分布区
-                 ctx.beginPath()
-                 for(let i = 0; i < num; i++) {
-                     const val = radar[dims[i].k] || 5.0
-                     const r = radius * (val / 5)
-                     const x = centerX + r * Math.cos(angles[i])
-                     const y = centerY + r * Math.sin(angles[i])
-                     if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-                 }
-                 ctx.closePath()
-                 ctx.fillStyle = 'rgba(103, 194, 58, 0.4)'
-                 ctx.fill()
-                 ctx.strokeStyle = '#67c23a'
-                 ctx.lineWidth = 2
-                 ctx.stroke()
-                 
-                 // 打点
-                 ctx.fillStyle = '#fff'
-                 for(let i = 0; i < num; i++) {
-                     const val = radar[dims[i].k] || 5.0
-                     const r = radius * (val / 5)
-                     const x = centerX + r * Math.cos(angles[i])
-                     const y = centerY + r * Math.sin(angles[i])
-                     ctx.beginPath()
-                     ctx.arc(x, y, 3, 0, Math.PI * 2)
-                     ctx.fill()
-                     ctx.stroke()
-                 }
-             })
+            .fields({ node: true, size: true })
+            .exec((res) => {
+                if (!res[0] || !res[0].node) return;
+                const canvas = res[0].node
+                const ctx = canvas.getContext('2d')
+                const dpr = wx.getSystemInfoSync().pixelRatio
+                const w = res[0].width
+                const h = res[0].height
+
+                canvas.width = w * dpr
+                canvas.height = h * dpr
+                ctx.scale(dpr, dpr)
+
+                const centerX = w / 2
+                const centerY = h / 2 + 10
+                const radius = Math.min(w, h) / 2 - 35
+
+                const dims = [
+                    { k: 'communication', n: '沟通' },
+                    { k: 'attitude', n: '态度' },
+                    { k: 'reliability', n: '诚信' },
+                    { k: 'speed', n: '速度' },
+                    { k: 'quality', n: '质量' },
+                ]
+                const num = dims.length
+                const angles = dims.map((_, i) => (Math.PI * 2 * i / num) - Math.PI / 2)
+
+                // 绘制底图网格 (5层)
+                ctx.strokeStyle = '#ebeef5'
+                ctx.fillStyle = '#fbfcfd'
+                for (let level = 5; level >= 1; level--) {
+                    const r = radius * (level / 5)
+                    ctx.beginPath()
+                    for (let i = 0; i < num; i++) {
+                        const x = centerX + r * Math.cos(angles[i])
+                        const y = centerY + r * Math.sin(angles[i])
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+                    }
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.stroke()
+                }
+
+                // 画轴线
+                ctx.strokeStyle = '#ebeef5'
+                for (let i = 0; i < num; i++) {
+                    ctx.beginPath()
+                    ctx.moveTo(centerX, centerY)
+                    ctx.lineTo(centerX + radius * Math.cos(angles[i]), centerY + radius * Math.sin(angles[i]))
+                    ctx.stroke()
+                }
+
+                // 画文字
+                ctx.fillStyle = '#606266'
+                ctx.font = '12px sans-serif'
+                ctx.textAlign = 'center'
+                ctx.textBaseline = 'middle'
+                for (let i = 0; i < num; i++) {
+                    const val = radar[dims[i].k] || 5.0
+                    let txtR = radius + 20
+                    if (i === 0) txtR = radius + 15
+                    const x = centerX + txtR * Math.cos(angles[i])
+                    const y = centerY + txtR * Math.sin(angles[i])
+                    ctx.fillText(`${dims[i].n} ${val}`, x, y)
+                }
+
+                // 画得分布区
+                ctx.beginPath()
+                for (let i = 0; i < num; i++) {
+                    const val = radar[dims[i].k] || 5.0
+                    const r = radius * (val / 5)
+                    const x = centerX + r * Math.cos(angles[i])
+                    const y = centerY + r * Math.sin(angles[i])
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+                }
+                ctx.closePath()
+                ctx.fillStyle = 'rgba(103, 194, 58, 0.4)'
+                ctx.fill()
+                ctx.strokeStyle = '#67c23a'
+                ctx.lineWidth = 2
+                ctx.stroke()
+
+                // 打点
+                ctx.fillStyle = '#fff'
+                for (let i = 0; i < num; i++) {
+                    const val = radar[dims[i].k] || 5.0
+                    const r = radius * (val / 5)
+                    const x = centerX + r * Math.cos(angles[i])
+                    const y = centerY + r * Math.sin(angles[i])
+                    ctx.beginPath()
+                    ctx.arc(x, y, 3, 0, Math.PI * 2)
+                    ctx.fill()
+                    ctx.stroke()
+                }
+            })
     },
 
     onInput(e) {
@@ -271,7 +271,7 @@ Page({
     },
 
     goToSettings() {
-        wx.showToast({ title: '设置功能开发中', icon: 'none' })
+        wx.navigateTo({ url: '/pages/settings/settings' })
     },
 
     handleLogout() {
