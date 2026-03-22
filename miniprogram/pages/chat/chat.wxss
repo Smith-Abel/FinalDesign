@@ -10,6 +10,15 @@
   flex: 1;
   padding: var(--space-md);
   padding-bottom: 160rpx;  /* 预留输入栏空间 */
+  box-sizing: border-box;
+}
+
+/* 隐藏聊天页的所有滚动条，提升沉浸感 */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  color: transparent;
+  display: none;
 }
 
 /* ── 消息行 ── */
@@ -19,7 +28,7 @@
   margin-bottom: var(--space-md);
   gap: var(--space-sm);
 }
-.msg-row.mine { flex-direction: row-reverse; }
+.msg-row.mine { justify-content: flex-end; }
 
 /* ── 头像 ── */
 .avatar-sm { width: 64rpx; height: 64rpx; border-radius: 50%; flex-shrink: 0; }
@@ -37,6 +46,8 @@
   border-radius: 24rpx;
   font-size: var(--font-md);
   line-height: 1.6;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 .bubble-theirs {
   background: var(--color-bg-card);

@@ -44,7 +44,15 @@
   box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.08);
   display: flex; gap: var(--space-md);
 }
-.action-btn { flex: 1; height: 88rpx; font-size: var(--font-lg); line-height: 88rpx; }
+.action-btn { 
+  flex: 1; 
+  height: 88rpx; 
+  font-size: var(--font-lg); 
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
 .action-btn.half { flex: 1; }
 .waiting-tip {
   flex: 1; text-align: center; font-size: var(--font-md);
@@ -53,7 +61,11 @@
 .btn-chat {
   background: #EBF5FF; color: #409EFF; border: none;
   border-radius: var(--radius-full); height: 88rpx; font-size: var(--font-md);
-  flex-shrink: 0; padding: 0 var(--space-lg);
+  flex-shrink: 0; 
+  padding: 0 var(--space-lg) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 .btn-chat::after { border: none; }
 .action-placeholder { height: 160rpx; }

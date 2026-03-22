@@ -65,8 +65,9 @@
   <!-- ③.5 个人评价雷达图 -->
   <view class="section card">
     <view class="section-title">我的评价雷达</view>
-    <view class="radar-wrap" style="position: relative; width: 100%; height: 440rpx; visibility: {{showEditModal ? 'hidden' : 'visible'}};">
-      <canvas type="2d" id="radarCanvas" style="width: 100%; height: 100%;"></canvas>
+    <view class="radar-wrap" style="position: relative; width: 100%; height: 440rpx; overflow: hidden;">
+      <image wx:if="{{radarImg}}" src="{{radarImg}}" style="width: 100%; height: 100%;" />
+      <canvas type="2d" id="radarCanvas" style="position: absolute; left: -99999px; width: 100%; height: 100%;"></canvas>
     </view>
   </view>
 

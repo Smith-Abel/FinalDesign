@@ -300,17 +300,84 @@ class TaskAcceptView(APIView):
                 )
 
             task.worker = request.user
-            task.status = TaskStatus.IN_PROGRESS
+            task.status = TaskStatus.PENDING_ACCEPT
             task.save()
 
             Notification.objects.create(
                 recipient=task.publisher,
                 notify_type=NotificationType.TASK_ACCEPTED,
-                content=f'您发布的任务「{task.title}」已被接单',
+                content=f'有人（{request.user.username}）刚刚抢单了您的任务「{task.title}」，请进入详细页审批是否同意 TA 的接单！',
                 related_task=task
             )
 
-            return Response({'detail': '接单成功', 'task': TaskDetailSerializer(task).data})
+            return Response({'detail': '接单申请已发出，等待发布者同意', 'task': TaskDetailSerializer(task).data})
+
+class TaskApproveAcceptView(APIView):
+    """
+    POST /api/tasks/{id}/approve_accept/ → 雇主同意接单
+    - 只有状态为 PENDING_ACCEPT 的任务可以同意
+    - 只有发布者可以操作
+    """
+    def post(self, request, pk):
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+            if task.publisher != request.user:
+                return Response({'detail': '只有发布者可以同意接单'}, status=status.HTTP_403_FORBIDDEN)
+
+            if task.status != TaskStatus.PENDING_ACCEPT:
+                return Response({'detail': '任务不在待同意状态'}, status=status.HTTP_400_BAD_REQUEST)
+
+            task.status = TaskStatus.IN_PROGRESS
+            task.save()
+
+            Notification.objects.create(
+                recipient=task.worker,
+                notify_type=NotificationType.SYSTEM,
+                content=f'恭喜！您对任务「{task.title}」的接单申请已获发布者同意，任务正式开始，请尽快联系对方。',
+                related_task=task
+            )
+
+            return Response({'detail': '已同意接单，任务正式开始'})
+
+
+class TaskRejectAcceptView(APIView):
+    """
+    POST /api/tasks/{id}/reject_accept/ → 雇主拒绝接单
+    - 状态回归 OPEN，清空 worker
+    """
+    def post(self, request, pk):
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                task = Task.objects.select_for_update().get(pk=pk)
+            except Task.DoesNotExist:
+                return Response({'detail': '任务不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+            if task.publisher != request.user:
+                return Response({'detail': '只有发布者可以操作'}, status=status.HTTP_403_FORBIDDEN)
+
+            if task.status != TaskStatus.PENDING_ACCEPT:
+                return Response({'detail': '任务不在待同意状态'}, status=status.HTTP_400_BAD_REQUEST)
+
+            worker = task.worker
+            task.worker = None
+            task.status = TaskStatus.OPEN
+            task.save()
+
+            if worker:
+                Notification.objects.create(
+                    recipient=worker,
+                    notify_type=NotificationType.SYSTEM,
+                    content=f'抱歉，您对任务「{task.title}」的接单申请被发布者拒绝了，任务已重回大厅。',
+                    related_task=task
+                )
+
+            return Response({'detail': '已拒绝该用户的接单，任务重回待接单状态'})
 
 
 class TaskRequestCompleteView(APIView):
@@ -510,6 +577,9 @@ class TaskMessageView(APIView):
         if not self._check_participant(task, request.user):
             return Response({'detail': '无权查看此任务的消息'}, status=status.HTTP_403_FORBIDDEN)
 
+        # 把发给我的未读消息标记为已读
+        Message.objects.filter(task=task, receiver=request.user, is_read=False).update(is_read=True)
+
         messages = Message.objects.filter(task=task).order_by('created_at')
         return Response(MessageSerializer(messages, many=True).data)
 
@@ -535,6 +605,45 @@ class TaskMessageView(APIView):
             content_text=content_text,
         )
         return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+class ChatSessionListView(APIView):
+    """
+    GET /api/messages/sessions/ → 获取当前用户的聊天会话聚合列表
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        tasks = Task.objects.filter(
+            Q(publisher=user) | Q(worker=user)
+        ).distinct()
+
+        sessions = []
+        for task in tasks:
+            last_msg = Message.objects.filter(task=task).order_by('-created_at').first()
+            if not last_msg:
+                continue
+
+            partner = task.worker if user == task.publisher else task.publisher
+            if not partner:
+                continue
+
+            unread_count = Message.objects.filter(task=task, receiver=user, is_read=False).count()
+            sessions.append({
+                'task_id': task.id,
+                'task_title': task.title,
+                'target_college': task.target_college,
+                'status': task.status,
+                'partner_id': partner.id,
+                'partner_name': partner.nickname or partner.username,
+                'partner_avatar': partner.avatar,
+                'last_message': last_msg.content_text,
+                'last_time': last_msg.created_at,
+                'unread_count': unread_count,
+            })
+        
+        sessions.sort(key=lambda x: x['last_time'], reverse=True)
+        return Response(sessions)
 
 
 # ═══════════════════ 积分模块 ═══════════════════

@@ -4,6 +4,7 @@
         "pages/index/index",
         "pages/task-detail/task-detail",
         "pages/publish/publish",
+        "pages/messages/messages",
         "pages/chat/chat",
         "pages/profile/profile",
         "pages/credits/credits",
@@ -32,6 +33,12 @@
                 "text": "发布",
                 "iconPath": "images/tab/add.png",
                 "selectedIconPath": "images/tab/add-active.png"
+            },
+            {
+                "pagePath": "pages/messages/messages",
+                "text": "消息",
+                "iconPath": "images/tab/user.png",
+                "selectedIconPath": "images/tab/user-active.png"
             },
             {
                 "pagePath": "pages/profile/profile",

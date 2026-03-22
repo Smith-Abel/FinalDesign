@@ -1,0 +1,44 @@
+<view class="page">
+  <!-- 系统通知快捷入口 -->
+  <view class="system-notify-card" bindtap="goToSystemNotifications">
+    <view class="left">
+      <view class="icon-wrap">🔔</view>
+      <text class="title">系统通知</text>
+    </view>
+    <view class="right">
+      <view class="arrow">></view>
+    </view>
+  </view>
+
+  <view class="session-divider">互动消息</view>
+
+  <!-- 会话列表 -->
+  <scroll-view class="session-list" scroll-y enable-flex>
+    <view class="session-card" 
+      wx:for="{{sessions}}" 
+      wx:key="task_id"
+      bindtap="goToChat"
+      data-task="{{item}}"
+    >
+      <view class="avatar-box">
+        <image wx:if="{{item.partner_avatar}}" src="{{item.partner_avatar}}" class="avatar"/>
+        <view wx:else class="avatar">{{item.partner_name[0]}}</view>
+        <view wx:if="{{item.unread_count > 0}}" class="badge">{{item.unread_count > 99 ? '99+' : item.unread_count}}</view>
+      </view>
+      <view class="content-box">
+        <view class="top-row">
+          <text class="name">{{item.partner_name}}</text>
+          <text class="time">{{item.timeAgo}}</text>
+        </view>
+        <view class="bottom-row">
+          <text class="task-title">[{{item.task_title}}] </text>
+          <text class="last-msg">{{item.last_message}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="empty-state" wx:if="{{!isLoading && sessions.length === 0}}">
+      暂无互动消息
+    </view>
+  </scroll-view>
+</view>

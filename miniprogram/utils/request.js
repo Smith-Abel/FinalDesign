@@ -1,6 +1,6 @@
 const storage = require('./storage')
 
-const BASE_URL = 'http://127.0.0.1:8000'
+const BASE_URL = 'http://localhost:8000'
 
 /**
  * 统一 HTTP 请求封装

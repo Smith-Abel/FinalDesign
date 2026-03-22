@@ -102,6 +102,19 @@
         loading="{{isLoading}}" disabled="{{isLoading}}" bindtap="handleComplete">确认完成</button>
     </block>
 
+    <!-- 接单者：等待审批中 -->
+    <block wx:if="{{actionType === 'waiting_approve'}}">
+      <view class="waiting-tip">⏳ 等待发布者同意接单</view>
+    </block>
+
+    <!-- 发布者：同意或拒绝接单 -->
+    <block wx:if="{{actionType === 'approve_reject_accept'}}">
+      <button class="btn-danger action-btn half {{isLoading ? 'btn-disabled' : ''}}"
+        disabled="{{isLoading}}" bindtap="handleRejectAccept">拒绝接单</button>
+      <button class="btn-primary action-btn half {{isLoading ? 'btn-disabled' : ''}}"
+        loading="{{isLoading}}" disabled="{{isLoading}}" bindtap="handleApproveAccept">同意接单</button>
+    </block>
+
     <!-- 接单者：等待中 -->
     <block wx:if="{{actionType === 'waiting'}}">
       <view class="waiting-tip">⏳ 等待发布者确认完成</view>
@@ -109,7 +122,7 @@
 
     <!-- 聊天按钮（任务参与者可见） -->
     <button
-      wx:if="{{actionType === 'complete_cancel' || actionType === 'waiting'}}"
+      wx:if="{{actionType === 'complete_cancel' || actionType === 'waiting' || actionType === 'approve_reject_accept' || actionType === 'waiting_approve'}}"
       class="btn-chat"
       bindtap="goToChat"
     >💬 进入聊天</button>

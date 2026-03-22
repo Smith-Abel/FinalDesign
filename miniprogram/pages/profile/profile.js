@@ -18,6 +18,7 @@ Page({
         isSaving: false,
         showEditModal: false,
         radarData: null,
+        radarImg: '',
     },
 
     async onShow() {
@@ -158,6 +159,19 @@ Page({
                     ctx.fill()
                     ctx.stroke()
                 }
+
+                // 在绘制完毕后，自动转为本地图片并隐藏 canvas
+                setTimeout(() => {
+                    wx.canvasToTempFilePath({
+                        canvas: canvas,
+                        success: (res) => {
+                            this.setData({ radarImg: res.tempFilePath })
+                        },
+                        fail: (err) => {
+                            console.error('Canvas to Image failed:', err)
+                        }
+                    })
+                }, 150)
             })
     },
 
@@ -216,7 +230,11 @@ Page({
             const res = await request.patch('/api/auth/profile/', this.data.editForm)
             app.setUserInfo(res)
             const wasNotRewarded = !this.data.user?.profile_reward_given
-            this.setData({ user: res, showEditModal: false })
+            this.setData({ user: res, showEditModal: false }, () => {
+                if (this.data.radarData) {
+                    setTimeout(() => this.drawRadar(this.data.radarData), 100)
+                }
+            })
             if (res.profile_reward_given && wasNotRewarded) {
                 wx.showModal({
                     title: '🎉 恭喜！',
@@ -239,7 +257,11 @@ Page({
         this.setData({ showEditModal: true })
     },
     closeEdit() {
-        this.setData({ showEditModal: false })
+        this.setData({ showEditModal: false }, () => {
+            if (this.data.radarData) {
+                setTimeout(() => this.drawRadar(this.data.radarData), 100)
+            }
+        })
     },
     noop() { },  // 阻止弹窗内点击冒泡
 

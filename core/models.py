@@ -38,6 +38,7 @@ class TaskCategory(models.TextChoices):
 
 class TaskStatus(models.TextChoices):
     OPEN = 'OPEN', '待接单'
+    PENDING_ACCEPT = 'PENDING_ACCEPT', '待同意接单'
     IN_PROGRESS = 'IN_PROGRESS', '进行中'
     PENDING_CONFIRM = 'PENDING_CONFIRM', '待确认'
     COMPLETED = 'COMPLETED', '已完成'

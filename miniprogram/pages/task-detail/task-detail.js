@@ -9,6 +9,7 @@ const CAT_MAP = {
 }
 const STATUS_MAP = {
     OPEN: { label: '待接单', cls: 'badge badge-open' },
+    PENDING_ACCEPT: { label: '待同意', cls: 'badge badge-pending' },
     IN_PROGRESS: { label: '进行中', cls: 'badge badge-progress' },
     PENDING_CONFIRM: { label: '待确认', cls: 'badge badge-pending' },
     COMPLETED: { label: '已完成', cls: 'badge badge-done' },
@@ -68,6 +69,10 @@ Page({
         this.setData({ canReport })
         if (status === 'COMPLETED' || status === 'CANCELLED') return 'none'
         if (status === 'OPEN') return publisher?.id === userId ? 'none' : 'accept'
+        if (status === 'PENDING_ACCEPT') {
+            if (publisher?.id === userId) return 'approve_reject_accept'
+            if (worker?.id === userId) return 'waiting_approve'
+        }
         if (status === 'IN_PROGRESS' || status === 'PENDING_CONFIRM') {
             if (publisher?.id === userId) return 'complete_cancel'
             if (worker?.id === userId) return 'waiting'
@@ -80,7 +85,7 @@ Page({
         try {
             await request.post(`/api/tasks/${this.taskId}/accept/`)
             wx.showToast({
-                title: '接单成功！',
+                title: '申请已发送',
                 icon: 'success',
                 duration: 800,
                 complete: () => this._loadTask(),
@@ -88,6 +93,42 @@ Page({
         } finally {
             this.setData({ isLoading: false })
         }
+    }),
+
+    handleApproveAccept: debounce(async function () {
+        wx.showModal({
+            title: '同意接单',
+            content: '确定同意接单吗？同意后任务正式开始。',
+            confirmColor: '#67C23A',
+            success: async ({ confirm }) => {
+                if (!confirm) return
+                this.setData({ isLoading: true })
+                try {
+                    await request.post(`/api/tasks/${this.taskId}/approve_accept/`)
+                    wx.showToast({ title: '已同意', icon: 'success', duration: 800, complete: () => this._loadTask() })
+                } finally {
+                    this.setData({ isLoading: false })
+                }
+            }
+        })
+    }),
+
+    handleRejectAccept: debounce(async function () {
+        wx.showModal({
+            title: '拒绝申请',
+            content: '确定拒绝该用户的接单申请吗？任务将重新回到大厅。',
+            confirmColor: '#F56C6C',
+            success: async ({ confirm }) => {
+                if (!confirm) return
+                this.setData({ isLoading: true })
+                try {
+                    await request.post(`/api/tasks/${this.taskId}/reject_accept/`)
+                    wx.showToast({ title: '已拒绝', icon: 'success', duration: 800, complete: () => this._loadTask() })
+                } finally {
+                    this.setData({ isLoading: false })
+                }
+            }
+        })
     }),
 
     handleComplete: debounce(async function () {

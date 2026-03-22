@@ -18,6 +18,8 @@ urlpatterns = [
     path('tasks/<int:pk>/', views.TaskDetailView.as_view(), name='task-detail'),
     path('tasks/<int:pk>/edit/', views.TaskUpdateView.as_view(), name='task-edit'),
     path('tasks/<int:pk>/accept/', views.TaskAcceptView.as_view(), name='task-accept'),
+    path('tasks/<int:pk>/approve_accept/', views.TaskApproveAcceptView.as_view(), name='task-approve-accept'),
+    path('tasks/<int:pk>/reject_accept/', views.TaskRejectAcceptView.as_view(), name='task-reject-accept'),
     path('tasks/<int:pk>/request_complete/', views.TaskRequestCompleteView.as_view(), name='task-request-complete'),
     path('tasks/<int:pk>/complete/', views.TaskCompleteView.as_view(), name='task-complete'),
     path('tasks/<int:pk>/cancel/', views.TaskCancelView.as_view(), name='task-cancel'),
@@ -25,6 +27,7 @@ urlpatterns = [
 
     # ── 消息模块 ──
     path('tasks/<int:pk>/messages/', views.TaskMessageView.as_view(), name='task-messages'),
+    path('messages/sessions/', views.ChatSessionListView.as_view(), name='message-sessions'),
 
     # ── 积分模块 ──
     path('credits/', views.CreditListView.as_view(), name='credit-list'),

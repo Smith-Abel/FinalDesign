@@ -58,8 +58,8 @@
       cursor-spacing="20"
     />
     <button
-      class="send-btn {{(!inputText.trim() || isSending) ? 'send-disabled' : ''}}"
-      disabled="{{!inputText.trim() || isSending}}"
+      class="send-btn {{(!inputText || isSending) ? 'send-disabled' : ''}}"
+      disabled="{{!inputText || isSending}}"
       bindtap="handleSend"
     >发送</button>
   </view>
