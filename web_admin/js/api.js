@@ -96,9 +96,12 @@ class ApiClient {
 
     // ── 任务管理（分页 + 筛选/排序）──
     // 返回 { count, results: [...] }
-    getTasks({ page = 1, pageSize = 20, q = '', ...filters } = {}) {
+    getTasks({ page = 1, pageSize = 20, q = '', searchMode = '', ...filters } = {}) {
         const params = new URLSearchParams({ page, page_size: pageSize });
-        if (q) params.append('q', q);
+        if (q) {
+            params.append('q', q);
+            if (searchMode) params.append('searchMode', searchMode);
+        }
         Object.entries(filters).forEach(([k, v]) => {
             if (v !== undefined && v !== '') params.append(k, v);
         });
@@ -113,10 +116,13 @@ class ApiClient {
         return this.request(`/tasks/${taskId}/`);
     }
 
-    // ── 学生认证（状态筛选）──
-    getVerifies(status = '') {
-        const query = status ? `?status=${status}` : '';
-        return this.request(`/manage/verifies/${query}`);
+    // ── 学生认证（状态筛选 + 搜索过滤）──
+    getVerifies({ q = '', college = '', status = '' } = {}) {
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (q) params.append('q', q);
+        if (college) params.append('college', college);
+        return this.request(`/manage/verifies/?${params}`);
     }
     
     actionVerify(id, action, note = '') {
@@ -126,10 +132,12 @@ class ApiClient {
         });
     }
 
-    // ── 举报工单（状态筛选）──
-    getReports(status = '') {
-        const query = status ? `?status=${status}` : '';
-        return this.request(`/manage/reports/${query}`);
+    // ── 举报工单（状态筛选 + 搜索过滤）──
+    getReports({ q = '', status = '' } = {}) {
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (q) params.append('q', q);
+        return this.request(`/manage/reports/?${params}`);
     }
     
     actionReport(id, action, note = '') {
@@ -137,6 +145,21 @@ class ApiClient {
             method: 'POST',
             body: JSON.stringify({ action, note })
         });
+    }
+
+    // ── 操作审计与导出 ──
+    getAudits({ page = 1, pageSize = 20, q = '' } = {}) {
+        const params = new URLSearchParams({ page, page_size: pageSize });
+        if (q) params.append('q', q);
+        return this.request(`/manage/audits/?${params}`);
+    }
+
+    getExportUsersUrl() {
+        return `${BASE_URL}/manage/export/users/?token=${this.token}`; // Note: basic token passing for a tag
+    }
+
+    getExportTasksUrl() {
+        return `${BASE_URL}/manage/export/tasks/?token=${this.token}`;
     }
 }
 

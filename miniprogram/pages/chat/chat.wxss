@@ -8,10 +8,40 @@
 /* ── 消息列表 ── */
 .msg-list {
   flex: 1;
-  padding: var(--space-md);
-  padding-bottom: 160rpx;  /* 预留输入栏空间 */
+  padding: 0 var(--space-md) 160rpx var(--space-md);
   box-sizing: border-box;
 }
+
+/* ── 顶部任务横幅 ── */
+.task-banner {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-card);
+  padding: 24rpx;
+  margin: var(--space-md) var(--space-md) 32rpx var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  gap: var(--space-sm);
+  position: relative;
+  z-index: 10;
+}
+.task-icon { font-size: 40rpx; }
+.task-info { flex: 1; overflow: hidden; }
+.task-title {
+  font-size: var(--font-md);
+  font-weight: bold;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-placeholder);
+  margin-top: 6rpx;
+}
+.task-arrow { color: var(--color-text-placeholder); font-size: var(--font-lg); }
+
 
 /* 隐藏聊天页的所有滚动条，提升沉浸感 */
 ::-webkit-scrollbar {
@@ -24,7 +54,7 @@
 /* ── 消息行 ── */
 .msg-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start; /* 将头像对齐到气泡顶部 */
   margin-bottom: var(--space-md);
   gap: var(--space-sm);
 }

@@ -195,3 +195,58 @@ class VerifyApplication(models.Model):
         verbose_name = "学生认证申请"
         verbose_name_plural = verbose_name
         ordering = ['-created_at']
+
+
+class AdminAuditLog(models.Model):
+    ACTION_CHOICES = (
+        ('BAN', '封禁用户'),
+        ('HIDE', '隐藏任务'),
+        ('APPROVE', '审核通过'),
+        ('REJECT', '审核拒绝'),
+        ('OTHER', '其他操作'),
+    )
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_logs', verbose_name="操作人")
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="操作类型")
+    target_id = models.CharField(max_length=64, verbose_name="目标ID(用户/任务/等业务主键)")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="操作IP")
+    reason = models.TextField(blank=True, verbose_name="批注缘由")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="操作时间")
+
+    class Meta:
+        verbose_name = "管理员操作审计日志"
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from datetime import timedelta
+
+@receiver(post_save, sender=Report)
+def auto_risk_control_on_report(sender, instance, created, **kwargs):
+    if created:
+        ten_mins_ago = timezone.now() - timedelta(minutes=10)
+        recent_count = Report.objects.filter(
+            target_type=instance.target_type,
+            target_id=instance.target_id,
+            created_at__gte=ten_mins_ago
+        ).count()
+        
+        if recent_count >= 3:
+            if instance.target_type == ReportTargetType.TASK:
+                Task.objects.filter(id=instance.target_id, is_hidden=False).update(is_hidden=True)
+                AdminAuditLog.objects.create(
+                    admin=None,
+                    action='HIDE',
+                    target_id=f"task_{instance.target_id}",
+                    reason="[系统防爆破自动处置]近10分钟内收到3次及以上举报，自动下架"
+                )
+            elif instance.target_type == ReportTargetType.USER:
+                User.objects.filter(id=instance.target_id, is_active=True).update(is_active=False)
+                AdminAuditLog.objects.create(
+                    admin=None,
+                    action='BAN',
+                    target_id=f"user_{instance.target_id}",
+                    reason="[系统防爆破自动处置]近10分钟内收到3次及以上举报，自动封禁"
+                )
+

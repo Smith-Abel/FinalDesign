@@ -17,12 +17,18 @@ Page({
         taskTitle: '',  // 导航栏标题
     },
 
-    onLoad({ id, title }) {
+    onLoad({ id, title, partner }) {
         this.taskId = id
 
-        // 设置导航栏标题
+        // 设置导航栏标题为对方昵称
+        if (partner) {
+            wx.setNavigationBarTitle({ title: decodeURIComponent(partner) })
+        } else {
+            wx.setNavigationBarTitle({ title: '任务沟通' })
+        }
+
+        // 保存任务标题用于显示在 Banner
         if (title) {
-            wx.setNavigationBarTitle({ title: decodeURIComponent(title) })
             this.setData({ taskTitle: decodeURIComponent(title) })
         }
 
@@ -51,6 +57,12 @@ Page({
     onUnload() {
         this._stopPolling()
         wx.offKeyboardHeightChange()
+    },
+
+    goToTask() {
+        if (this.taskId) {
+            wx.navigateTo({ url: `/pages/task-detail/task-detail?id=${this.taskId}` })
+        }
     },
 
     _startPolling() {

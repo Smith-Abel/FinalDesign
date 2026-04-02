@@ -20,4 +20,9 @@ urlpatterns = [
     # 举报工单仲裁
     path('reports/', views.AdminReportListView.as_view(), name='manage-report-list'),
     path('reports/<int:pk>/action/', views.AdminReportActionView.as_view(), name='manage-report-action'),
+    
+    # 审计与导出
+    path('audits/', views.AdminAuditLogListView.as_view(), name='manage-audit-list'),
+    path('export/users/', views.AdminExportUsersView.as_view(), name='manage-export-users'),
+    path('export/tasks/', views.AdminExportTasksView.as_view(), name='manage-export-tasks'),
 ]

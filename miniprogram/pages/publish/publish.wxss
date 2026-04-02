@@ -1,5 +1,5 @@
 .page { display: flex; flex-direction: column; height: 100vh; background: var(--color-bg-page); }
-.form-scroll { flex: 1; padding: var(--space-md); }
+.form-scroll { flex: 1; padding: var(--space-md); box-sizing: border-box; width: 100%; }
 
 /* ── 表单区块 ── */
 .form-section { margin-bottom: var(--space-lg); }
@@ -41,6 +41,54 @@
   color: var(--color-primary); font-weight: 600;
 }
 
+/* ── 图片上传 ── */
+.image-uploader {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+.image-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-card);
+}
+.uploaded-img {
+  width: 100%;
+  height: 100%;
+}
+.delete-btn {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  z-index: 2;
+}
+.upload-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  border: 2rpx dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+.upload-icon {
+  font-size: 64rpx;
+  color: var(--color-text-placeholder);
+}
 
 
 /* ── 提交栏 ── */

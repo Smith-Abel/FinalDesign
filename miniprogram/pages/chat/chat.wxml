@@ -7,6 +7,19 @@
     scroll-into-view="{{scrollToId}}"
     scroll-with-animation
   >
+    <!-- 顶部占位，防止顶层内容被隐藏覆盖 -->
+    <view style="height: 10rpx; width: 100%; flex-shrink: 0;"></view>
+
+    <!-- 顶部任务横幅 -->
+    <view class="task-banner" wx:if="{{taskTitle}}" bindtap="goToTask">
+      <view class="task-icon">📋</view>
+      <view class="task-info">
+        <view class="task-title">{{taskTitle}}</view>
+        <view class="task-desc">此会话基于该任务发起，点击查看详情</view>
+      </view>
+      <view class="task-arrow">›</view>
+    </view>
+
     <!-- 空状态 -->
     <view class="empty-state" wx:if="{{messages.length === 0 && !isLoading}}">
       <image src="/images/empty.png" />

@@ -32,12 +32,21 @@ Page({
     async loadSessions() {
         this.setData({ isLoading: true })
         try {
-            const res = await request.get('/api/messages/sessions/')
+            const res = await request.get(`/api/messages/sessions/?_t=${Date.now()}`)
             const sorted = res.map(item => ({
                 ...item,
                 timeAgo: formatTimeAgo(item.last_time)
             }))
             this.setData({ sessions: sorted })
+
+            // ── 汇总未读数，驱动 Tab 角标 ──
+            const totalUnread = sorted.reduce((sum, s) => sum + (s.unread_count || 0), 0)
+            if (totalUnread > 0) {
+                wx.setTabBarBadge({ index: 2, text: totalUnread > 99 ? '99+' : String(totalUnread) })
+            } else {
+                wx.removeTabBarBadge({ index: 2 })
+            }
+
         } catch (e) {
             console.error('获取会话列表失败', e)
         } finally {
@@ -52,6 +61,7 @@ Page({
     goToChat(e) {
         const item = e.currentTarget.dataset.task
         const title = encodeURIComponent(item.task_title)
-        wx.navigateTo({ url: `/pages/chat/chat?id=${item.task_id}&title=${title}` })
+        const partner = encodeURIComponent(item.partner_name || '任务沟通')
+        wx.navigateTo({ url: `/pages/chat/chat?id=${item.task_id}&title=${title}&partner=${partner}` })
     }
 })

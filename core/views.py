@@ -608,40 +608,45 @@ class TaskMessageView(APIView):
 
 class ChatSessionListView(APIView):
     """
-    GET /api/messages/sessions/ → 获取当前用户的聊天会话聚合列表
+    GET /api/messages/sessions/ → 获取当前用户的聊天会话聚合列表（按联系人+任务维度聚合）
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        tasks = Task.objects.filter(
-            Q(publisher=user) | Q(worker=user)
-        ).distinct()
-
-        sessions = []
-        for task in tasks:
-            last_msg = Message.objects.filter(task=task).order_by('-created_at').first()
-            if not last_msg:
-                continue
-
-            partner = task.worker if user == task.publisher else task.publisher
-            if not partner:
-                continue
-
-            unread_count = Message.objects.filter(task=task, receiver=user, is_read=False).count()
-            sessions.append({
-                'task_id': task.id,
-                'task_title': task.title,
-                'target_college': task.target_college,
-                'status': task.status,
-                'partner_id': partner.id,
-                'partner_name': partner.nickname or partner.username,
-                'partner_avatar': partner.avatar,
-                'last_message': last_msg.content_text,
-                'last_time': last_msg.created_at,
-                'unread_count': unread_count,
-            })
         
+        # 找到与当前用户相关的所有私信，按时间倒序
+        messages = Message.objects.filter(
+            Q(sender=user) | Q(receiver=user)
+        ).select_related('sender', 'receiver', 'task').order_by('-created_at')
+
+        sessions_dict = {}
+        for msg in messages:
+            # 确定对方(partner)
+            partner = msg.receiver if msg.sender == user else msg.sender
+            
+            # 以 任务+联系人 为维度区分不同会话
+            session_key = f"{msg.task.id}_{partner.id}"
+            
+            # 如果该会话尚未加入字典，则加入（因为按 created_at 倒序排列，首次遇到即是最新的消息）
+            if session_key not in sessions_dict:
+                # 计算该联系人在该任务发给我的所有未读消息
+                unread_count = Message.objects.filter(task=msg.task, sender=partner, receiver=user, is_read=False).count()
+                
+                sessions_dict[session_key] = {
+                    'task_id': msg.task.id,
+                    'task_title': msg.task.title,
+                    'target_college': msg.task.target_college,
+                    'status': msg.task.status,
+                    'partner_id': partner.id,
+                    'partner_name': partner.nickname or partner.username,
+                    'partner_avatar': partner.avatar,
+                    'last_message': msg.content_text,
+                    'last_time': msg.created_at,
+                    'unread_count': unread_count,
+                }
+        
+        sessions = list(sessions_dict.values())
         sessions.sort(key=lambda x: x['last_time'], reverse=True)
         return Response(sessions)
 

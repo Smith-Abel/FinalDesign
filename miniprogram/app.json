@@ -37,8 +37,8 @@
             {
                 "pagePath": "pages/messages/messages",
                 "text": "消息",
-                "iconPath": "images/tab/user.png",
-                "selectedIconPath": "images/tab/user-active.png"
+                "iconPath": "images/tab/message.png",
+                "selectedIconPath": "images/tab/message-active.png"
             },
             {
                 "pagePath": "pages/profile/profile",

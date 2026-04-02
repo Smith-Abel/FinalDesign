@@ -1,6 +1,20 @@
 from rest_framework import serializers
-from .models import User, Task, Message, CreditDetail, Report, ReportReason, ReportStatus, Notification, NotificationType, Review, VerifyApplication
+from .models import (
+    User, Task, Message, CreditDetail, Report, ReportReason, ReportStatus, 
+    Notification, NotificationType, Review, VerifyApplication, AdminAuditLog
+)
 
+class AdminAuditLogSerializer(serializers.ModelSerializer):
+    admin_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AdminAuditLog
+        fields = ['id', 'admin', 'admin_name', 'action', 'target_id', 'ip_address', 'reason', 'created_at']
+
+    def get_admin_name(self, obj):
+        if obj.admin:
+            return obj.admin.nickname or obj.admin.username
+        return 'System'
 
 # ───────── 用户序列化器 ─────────
 
@@ -13,13 +27,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'nickname', 'phone', 'student_id', 'avatar', 'college',
-            'gender', 'credit_score', 'is_verified',
+            'gender', 'credit_score', 'is_verified', 'is_active', 'date_joined',
             'profile_reward_given', 'first_help_rewarded',
             'tasks_created', 'tasks_done'
         ]
         # 系统控制字段，前端不可直接修改
         read_only_fields = [
-            'id', 'username', 'credit_score', 'is_verified',
+            'id', 'username', 'credit_score', 'is_verified', 'is_active', 'date_joined',
             'profile_reward_given', 'first_help_rewarded',
         ]
 
@@ -229,7 +243,10 @@ class ReviewSerializer(serializers.ModelSerializer):
 # ───────── 认证申请序列化器 ─────────
 
 class VerifyApplicationSerializer(serializers.ModelSerializer):
+    user_nickname = serializers.CharField(source='user.nickname', read_only=True)
+    user_college = serializers.CharField(source='user.college', read_only=True)
+
     class Meta:
         model = VerifyApplication
-        fields = ['id', 'real_name', 'student_id_image', 'status', 'note', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'status', 'note', 'created_at', 'updated_at']
+        fields = ['id', 'user_nickname', 'user_college', 'real_name', 'student_id_image', 'status', 'note', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user_nickname', 'user_college', 'status', 'note', 'created_at', 'updated_at']

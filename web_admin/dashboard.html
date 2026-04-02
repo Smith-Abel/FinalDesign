@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/admin.css?v=2026-v3">
 </head>
+
 <body class="dashboard-body">
-    
+
     <!-- 侧边栏 -->
     <aside class="sidebar glass-panel">
         <div class="sidebar-logo">
@@ -31,8 +33,11 @@
             <a href="#" class="nav-item" data-view="reports">
                 <span class="nav-icon">🚩</span> 举报工单
             </a>
+            <a href="#" class="nav-item" data-view="audits">
+                <span class="nav-icon">🛡️</span> 操作审计
+            </a>
         </nav>
-        
+
         <div class="sidebar-bottom">
             <a href="#" class="nav-item danger-text" id="logoutBtn">
                 <span class="nav-icon">🚪</span> 退出登录
@@ -60,8 +65,8 @@
     </main>
 
     <!-- 挂载模板 (通过 JS 渲染) -->
-    
-    <script src="js/api.js?v=2026-v3"></script>
-    <script src="js/dashboard.js?v=2026-v3"></script>
+    <script src="js/api.js?v=2026-v6"></script>
+    <script src="js/dashboard.js?v=2026-v6"></script>
 </body>
+
 </html>

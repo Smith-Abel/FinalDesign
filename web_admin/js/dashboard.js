@@ -20,15 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
         'users': { title: '用户管理', render: renderUsers },
         'verifies': { title: '学生审核', render: renderVerifies },
         'tasks': { title: '任务监控', render: renderTasks },
-        'reports': { title: '举报工单', render: renderReports }
+        'reports': { title: '举报工单', render: renderReports },
+        'audits': { title: '操作审计', render: renderAudits }
     };
 
     // 各视图本地状态（保持筛选条件 / 页码 / 排序信息）
     const viewState = {
         users: { page: 1, q: '', is_active: '', ordering: '-date_joined' },
-        tasks: { page: 1, q: '', category: '', status: '', is_hidden: '', ordering: '-created_at' },
-        verifies: { status: '' },
-        reports: { status: '' }
+        tasks: { page: 1, q: '', searchMode: 'content', category: '', status: '', is_hidden: '', ordering: '-created_at' },
+        verifies: { status: '', q: '', college: '' },
+        reports: { status: '', q: '' },
+        audits: { page: 1, q: '' }
     };
 
     // ── 导航事件 ──
@@ -271,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="-credit_score" ${state.ordering === '-credit_score' ? 'selected' : ''}>积分最多优先</option>
                     <option value="credit_score" ${state.ordering === 'credit_score' ? 'selected' : ''}>积分最少优先</option>
                 </select>
+                <button class="btn-micro" style="padding:0 15px" onclick="window.open(window.api.getExportUsersUrl(), '_blank')">导出数据 (CSV)</button>
             </div>
             <div class="card table-card">
                 <table class="data-table">
@@ -316,18 +319,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ================================================================
-       3. 学生审核（含状态筛选 Tabs）
+       3. 学生审核（含搜索过滤及 Tabs）
     ================================================================ */
     async function renderVerifies(container) {
-        const currentStatus = viewState.verifies.status || '';
-        const list = await window.api.getVerifies(currentStatus);
+        const state = viewState.verifies;
+        const list = await window.api.getVerifies({
+            status: state.status,
+            q: state.q,
+            college: state.college
+        });
 
         const tabs = buildTabs([
             { label: '全部', value: '' },
             { label: '⏳ 待审核', value: 'PENDING' },
             { label: '✅ 已通过', value: 'APPROVED' },
             { label: '❌ 已驳回', value: 'REJECTED' }
-        ], currentStatus, 'verifies');
+        ], state.status, 'verifies');
 
         const statMap = { 'PENDING': '待审核', 'APPROVED': '已通过', 'REJECTED': '已驳回' };
 
@@ -343,7 +350,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ? list.map(v => `
                 <tr>
                     <td>${v.id}</td>
-                    <td>${v.real_name}</td>
+                    <td>
+                        <div>${v.real_name}</div>
+                        <small style="color:#999">昵称: ${v.user_nickname || '-'}</small>
+                    </td>
+                    <td>${v.user_college || '-'}</td>
                     <td>
                         <a href="${v.student_id_image}" target="_blank" class="img-preview">
                             <img src="${v.student_id_image}" width="60" alt="凭证"/>
@@ -355,21 +366,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${renderAction(v.id, v.status)}</td>
                 </tr>
             `).join('')
-            : '<tr><td colspan="7" class="empty-row">该状态下暂无审核工单</td></tr>';
+            : '<tr><td colspan="8" class="empty-row">该状态下暂无审核工单</td></tr>';
 
         container.innerHTML = `
             ${tabs}
+            <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+                <div class="search-input-wrapper" style="flex: 1; min-width: 200px;">
+                    <input type="text" id="verifySearchInput" placeholder="按姓名或昵称搜索..." value="${state.q}" class="search-input" style="width: 100%;">
+                    <button id="verifySearchBtn" class="search-icon-btn" title="筛选检索">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+                <input type="text" id="verifyCollegeInput" class="search-input" placeholder="输入学院名称筛选" value="${state.college}" style="width: auto; min-width: 140px;">
+            </div>
             <div class="card table-card">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>ID</th><th>真实姓名</th><th>证件照片</th><th>状态</th><th>申请时间</th><th>处理备注</th><th>操作</th>
+                            <th>ID</th><th>姓名 / 昵称</th><th>所属学院</th><th>证件照片</th><th>状态</th><th>申请时间</th><th>处理备注</th><th>操作</th>
                         </tr>
                     </thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             </div>
         `;
+        
+        // 绑定搜索事件
+        const triggerSearch = () => {
+            viewState.verifies.q = document.getElementById('verifySearchInput').value.trim();
+            viewState.verifies.college = document.getElementById('verifyCollegeInput').value.trim();
+            switchView('verifies');
+        };
+        
+        document.getElementById('verifySearchBtn').addEventListener('click', triggerSearch);
+        document.getElementById('verifySearchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') triggerSearch();
+        });
+        document.getElementById('verifyCollegeInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') triggerSearch();
+        });
     }
 
     window.handleActionVerify = async (id, action) => {
@@ -397,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await window.api.getTasks({
             page: state.page,
             q: state.q,
+            searchMode: state.searchMode,
             category: state.category,
             status: state.status,
             is_hidden: state.is_hidden,
@@ -436,12 +472,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-                <div class="search-input-wrapper" style="flex: 1; min-width: 150px;">
-                    <input type="text" id="taskSearchInput" placeholder="按标题内容筛选..." value="${state.q}" class="search-input" style="width: 100%;">
+                <div class="search-input-wrapper" style="flex: 1; min-width: 200px;">
+                    <input type="text" id="taskSearchInput" placeholder="输入关键词检索..." value="${state.q}" class="search-input" style="width: 100%;">
                     <button id="taskSearchBtn" class="search-icon-btn" title="筛选检索">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
                 </div>
+                <select id="taskSearchMode" class="search-input" style="width: auto;">
+                    <option value="content" ${state.searchMode === 'content' ? 'selected' : ''}>按标题或内容</option>
+                    <option value="publisher" ${state.searchMode === 'publisher' ? 'selected' : ''}>搜发单人昵称</option>
+                    <option value="worker" ${state.searchMode === 'worker' ? 'selected' : ''}>搜接单人昵称</option>
+                </select>
                 <select id="taskCatSelect" class="search-input" style="width: auto; min-width: 120px;">
                     <option value="">全部分类</option>
                     <option value="帮我跑腿" ${state.category === '帮我跑腿' ? 'selected' : ''}>帮我跑腿</option>
@@ -469,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option value="-reward_amount" ${state.ordering === '-reward_amount' ? 'selected' : ''}>赏金最高优先</option>
                     <option value="reward_amount" ${state.ordering === 'reward_amount' ? 'selected' : ''}>赏金最低优先</option>
                 </select>
+                <button class="btn-micro" style="padding:0 15px" onclick="window.open(window.api.getExportTasksUrl(), '_blank')">导出数据 (CSV)</button>
             </div>
             <div class="card table-card">
                 <table class="data-table">
@@ -485,6 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 工具栏交互事件
         const triggerTaskSearch = () => {
+            viewState.tasks.searchMode = document.getElementById('taskSearchMode').value;
             viewState.tasks.q = document.getElementById('taskSearchInput').value.trim();
             viewState.tasks.category = document.getElementById('taskCatSelect').value;
             viewState.tasks.status = document.getElementById('taskStatusSelect').value;
@@ -495,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         ['taskSearchBtn'].forEach(id => document.getElementById(id).addEventListener('click', triggerTaskSearch));
-        ['taskCatSelect', 'taskStatusSelect', 'taskHiddenSelect', 'taskSortSelect'].forEach(id => 
+        ['taskSearchMode', 'taskCatSelect', 'taskStatusSelect', 'taskHiddenSelect', 'taskSortSelect'].forEach(id => 
             document.getElementById(id).addEventListener('change', triggerTaskSearch)
         );
         document.getElementById('taskSearchInput').addEventListener('keydown', e => {
@@ -645,18 +688,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ================================================================
-       5. 举报工单（含状态筛选 Tabs）
+       5. 举报工单（含搜索过滤及 Tabs）
     ================================================================ */
     async function renderReports(container) {
-        const currentStatus = viewState.reports.status || '';
-        const reports = await window.api.getReports(currentStatus);
+        const state = viewState.reports;
+        const reports = await window.api.getReports({
+            status: state.status,
+            q: state.q
+        });
 
         const tabs = buildTabs([
             { label: '全部', value: '' },
             { label: '🔴 待处理', value: 'PENDING' },
             { label: '✅ 确认违规', value: 'RESOLVED' },
             { label: '⬜ 已退回', value: 'REJECTED' }
-        ], currentStatus, 'reports');
+        ], state.status, 'reports');
 
         const statMap = { 'PENDING': '待审核', 'RESOLVED': '确认违规', 'REJECTED': '已退回' };
 
@@ -692,6 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             ${tabs}
+            <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+                <div class="search-input-wrapper" style="flex: 1; max-width: 400px;">
+                    <input type="text" id="reportSearchInput" placeholder="按举报人、原因或详情搜索..." value="${state.q}" class="search-input" style="width: 100%;">
+                    <button id="reportSearchBtn" class="search-icon-btn" title="筛选检索">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+            </div>
             <div class="card table-card">
                 <table class="data-table">
                     <thead>
@@ -703,6 +757,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 </table>
             </div>
         `;
+        
+        // 绑定搜索事件
+        const triggerSearch = () => {
+            viewState.reports.q = document.getElementById('reportSearchInput').value.trim();
+            switchView('reports');
+        };
+        
+        document.getElementById('reportSearchBtn').addEventListener('click', triggerSearch);
+        document.getElementById('reportSearchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') triggerSearch();
+        });
     }
 
     window.handleActionReport = async (id, action) => {
@@ -715,4 +780,70 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(e.message);
         }
     };
+
+    /* ================================================================
+       6. 操作审计日志
+    ================================================================ */
+    async function renderAudits(container) {
+        const state = viewState.audits;
+        const data = await window.api.getAudits({
+            page: state.page,
+            q: state.q
+        });
+        const audits = data.results || data;
+
+        const actionColorMap = {
+            'BAN': '#F56C6C', 'HIDE': '#E6A23C', 'APPROVE': '#67C23A',
+            'REJECT': '#F56C6C', 'VERIFY': '#409EFF', 'OTHER': '#909399'
+        };
+
+        const tableRows = audits.length
+            ? audits.map(a => `
+                <tr>
+                    <td>#${a.id}</td>
+                    <td>${a.admin_name}</td>
+                    <td><span class="status-badge" style="background:${actionColorMap[a.action] || '#909399'}">${a.action}</span></td>
+                    <td>${a.target_id}</td>
+                    <td>${a.ip_address || '-'}</td>
+                    <td style="max-width:300px;white-space:normal;word-break:break-all;">${a.reason}</td>
+                    <td>${new Date(a.created_at).toLocaleString()}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="7" class="empty-row">暂无审计记录</td></tr>';
+
+        container.innerHTML = `
+            <div class="toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+                <div class="search-input-wrapper" style="flex: 1; max-width: 400px;">
+                    <input type="text" id="auditSearchInput" placeholder="按内容或目标ID搜索..." value="${state.q}" class="search-input" style="width: 100%;">
+                    <button id="auditSearchBtn" class="search-icon-btn" title="筛选检索">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card table-card">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>日志ID</th><th>操作者</th><th>变更类型</th><th>业务目标</th><th>来源IP</th><th>详细说明</th><th>发生时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>
+            </div>
+            ${data.count ? buildPagination(data.count, state.page, 20, 'audits') : ''}
+        `;
+        
+        const triggerSearch = () => {
+            viewState.audits.q = document.getElementById('auditSearchInput').value.trim();
+            viewState.audits.page = 1;
+            switchView('audits');
+        };
+        
+        document.getElementById('auditSearchBtn').addEventListener('click', triggerSearch);
+        document.getElementById('auditSearchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') triggerSearch();
+        });
+    }
+
 });
+
