@@ -27,7 +27,8 @@ class ApiClient {
             ...(options.headers || {})
         };
 
-        if (this.token) {
+        // 登录接口不应携带旧的 token，避免因过期 token 导致认证错误
+        if (this.token && endpoint !== '/auth/login/') {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
 
@@ -37,27 +38,28 @@ class ApiClient {
                 headers
             });
 
+            // 统一处理 401 未授权错误：清除本地 token 并返回登录页
             if (response.status === 401) {
-                // 如果是请求登录接口时帐号密码错误引起的 401，则不触发全局拦截和跳转重载
+                this.clearToken();
+                // 若是登录请求本身返回 401（密码错误），保持在登录页，不再强制跳转
                 if (endpoint !== '/auth/login/') {
-                    this.clearToken();
                     window.location.href = 'index.html';
-                    return null;
                 }
+                return null;
             }
 
-            let data;
             const resText = await response.text();
+            let data;
             try {
                 data = resText ? JSON.parse(resText) : {};
             } catch (e) {
                 data = {};
             }
-            
+
             if (!response.ok) {
                 throw new Error(data.detail || '请求失败，请稍后重试');
             }
-            
+
             return data;
         } catch (error) {
             console.error('API Error:', error);

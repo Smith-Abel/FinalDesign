@@ -54,6 +54,7 @@
         src="{{item}}" 
         class="detail-img" 
         mode="widthFix"
+        lazy-load="true"
         bindtap="previewTaskImage"
         data-url="{{item}}"
       />
@@ -78,6 +79,22 @@
         <text class="username">{{task.worker.username}}</text>
         <text class="college" wx:if="{{task.worker.college}}">{{task.worker.college}}</text>
       </view>
+    </view>
+  </view>
+
+  <!-- 对方的评价（任务完成后显示） -->
+  <view class="review-card card" wx:if="{{task.status === 'COMPLETED'}}">
+    <text class="section-title">对方的评价</text>
+    <view class="review-box" wx:if="{{task.partner_review}}">
+      <view class="review-header">
+        <text class="review-author">{{task.partner_review.reviewer_name}}</text>
+        <text class="review-date">{{task.partner_review.created_at}}</text>
+      </view>
+      <view class="review-text" wx:if="{{task.partner_review.comment}}">{{task.partner_review.comment}}</view>
+      <view class="review-text empty-comment" wx:else>该用户没有留下文字评价</view>
+    </view>
+    <view class="review-box empty" wx:else>
+      <text class="pending-text">⏳ 对方暂未评价</text>
     </view>
   </view>
 

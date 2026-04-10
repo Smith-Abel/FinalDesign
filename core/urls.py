@@ -46,6 +46,7 @@ urlpatterns = [
 
     # ── 评价模块 ──
     path('reviews/', views.ReviewCreateView.as_view(), name='review-create'),
+    path('reviews/received/', views.ReviewListView.as_view(), name='review-received-list'),
     path('users/<int:pk>/radar/', views.UserRadarView.as_view(), name='user-radar'),
 
     # ── 学生认证模块 ──

@@ -34,13 +34,16 @@ Page({
         if (res.confirm) {
           try {
             // 保留核心信息避免掉登录状态
-            const token = wx.getStorageSync('token')
-            const userInfo = wx.getStorageSync('userInfo')
+            const storage = require('../../utils/storage')
+            const token = storage.getToken()
+            const refresh = storage.getRefreshToken()
+            const userInfo = storage.getUserInfo()
             
             wx.clearStorageSync()
             
-            if (token) wx.setStorageSync('token', token)
-            if (userInfo) wx.setStorageSync('userInfo', userInfo)
+            if (token) storage.setToken(token)
+            if (refresh) storage.setRefreshToken(refresh)
+            if (userInfo) storage.setUserInfo(userInfo)
             
             wx.showToast({ title: '清理完成', icon: 'success' })
             this.calculateCache()

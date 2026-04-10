@@ -47,20 +47,20 @@ class TaskStatus(models.TextChoices):
 class Task(models.Model):
     publisher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='published_tasks', verbose_name="发单者")
     worker = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='accepted_tasks', verbose_name="接单者")
-    category = models.CharField(max_length=20, choices=TaskCategory.choices, verbose_name="任务分类")
+    category = models.CharField(max_length=20, choices=TaskCategory.choices, db_index=True, verbose_name="任务分类")
     target_college = models.CharField(max_length=100, null=True, blank=True, verbose_name="目标学院", help_text="留空则全校可见")
     title = models.CharField(max_length=100, verbose_name="标题")
     content = models.TextField(verbose_name="详细内容")
     tags = models.CharField(max_length=200, blank=True, verbose_name="标签")
     reward_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="悬赏金额")
-    status = models.CharField(max_length=20, choices=TaskStatus.choices, default=TaskStatus.OPEN, verbose_name="状态")
+    status = models.CharField(max_length=20, choices=TaskStatus.choices, default=TaskStatus.OPEN, db_index=True, verbose_name="状态")
     # 地理位置：可不填，填写后展示地图入口
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="纬度")
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="经度")
     location_name = models.CharField(max_length=200, null=True, blank=True, verbose_name="位置名称")
     images = models.JSONField(default=list, blank=True, verbose_name="任务图片")
     # 自动风控：被多次举报后自动隐藏，管理员审核处理后可恢复
-    is_hidden = models.BooleanField(default=False, verbose_name="已被隐藏")
+    is_hidden = models.BooleanField(default=False, db_index=True, verbose_name="已被隐藏")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 

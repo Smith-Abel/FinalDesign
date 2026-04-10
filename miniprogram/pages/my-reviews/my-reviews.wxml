@@ -1,0 +1,25 @@
+<view class="page">
+    <view class="review-list" wx:if="{{reviews.length > 0}}">
+      <view class="review-item" wx:for="{{reviews}}" wx:key="id" bindtap="goToTaskDetail" data-id="{{item.task}}">
+        <image class="review-avatar" src="{{item.reviewer_avatar}}" wx:if="{{item.reviewer_avatar}}" />
+        <view class="review-avatar-placeholder" wx:else>{{item.reviewer_name[0]}}</view>
+        <view class="review-content">
+          <view class="review-header">
+            <text class="review-name">{{item.reviewer_name}}</text>
+            <text class="review-date">{{item.created_date}}</text>
+          </view>
+          <view class="review-text" wx:if="{{item.comment}}">{{item.comment}}</view>
+          <view class="review-text empty-comment" wx:else>该用户没有留下文字评价</view>
+          <view class="review-task-link">查看相关任务 ›</view>
+        </view>
+      </view>
+      <view class="loading-state" wx:if="{{isLoading}}">加载中...</view>
+      <view class="no-more" wx:if="{{!hasMore && reviews.length > 0}}">没有更多评价了</view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:elif="{{!isLoading}}">
+      <image src="/images/empty.png" />
+      <text>暂无评价记录</text>
+    </view>
+</view>

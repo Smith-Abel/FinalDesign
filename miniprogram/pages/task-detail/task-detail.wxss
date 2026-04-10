@@ -37,6 +37,47 @@
   color: var(--color-primary); border-radius: var(--radius-full); font-size: var(--font-xs);
 }
 
+/* ── 评价卡片 ── */
+.review-card { margin-bottom: var(--space-md); }
+.review-box {
+  background: var(--color-bg-page);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-sm);
+}
+.review-box.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg) 0;
+}
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+.review-author {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}
+.review-date {
+  font-size: var(--font-xs);
+  color: var(--color-text-placeholder);
+}
+.review-text {
+  font-size: var(--font-md);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+.empty-comment {
+  color: var(--color-text-placeholder);
+  font-style: italic;
+}
+.pending-text {
+  color: var(--color-text-placeholder);
+  font-size: var(--font-md);
+}
+
 /* ── 操作栏 ── */
 .action-bar {
   position: fixed; bottom: 0; left: 0; right: 0;

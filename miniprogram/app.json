@@ -13,6 +13,7 @@
         "pages/my-reports/my-reports",
         "pages/notifications/notifications",
         "pages/review/review",
+        "pages/my-reviews/my-reviews",
         "pages/verify/verify",
         "pages/settings/settings"
     ],

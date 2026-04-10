@@ -64,7 +64,7 @@
         data-id="{{item.id}}"
       >
         <!-- 封面图 -->
-        <image wx:if="{{item.cover_image}}" src="{{item.cover_image}}" class="card-cover" mode="widthFix" />
+        <image wx:if="{{item.cover_image}}" src="{{item.cover_image}}" class="card-cover" mode="widthFix" lazy-load="true" />
         
         <!-- 任务内容区 -->
         <view class="card-content">
@@ -82,7 +82,7 @@
           
           <view class="card-footer">
             <view class="publisher-info">
-              <image class="publisher-avatar" src="{{item.publisher_avatar || '/images/default-avatar.png'}}" />
+              <image class="publisher-avatar" src="{{item.publisher_avatar || '/images/default-avatar.png'}}" lazy-load="true" />
               <text class="publisher-name">{{item.publisher_name}}</text>
             </view>
           </view>

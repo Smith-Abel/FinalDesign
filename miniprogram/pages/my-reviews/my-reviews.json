@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我收到的评价",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 50,
+  "backgroundColor": "#F5F7FA"
+}

@@ -213,7 +213,8 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         from django.db.models import Q
-        qs = Task.objects.select_related('publisher')
+        # 预加载 publisher 解决一对多 N+1，预加载 reviews 解决序列化中统计评价的 N+1
+        qs = Task.objects.select_related('publisher').prefetch_related('reviews')
         
         category = self.request.query_params.get('category')
         task_status = self.request.query_params.get('status')
@@ -265,7 +266,7 @@ class TaskDetailView(generics.RetrieveAPIView):
     """
     GET /api/tasks/{id}/ → 获取任务详情（含发布者、接单者的完整信息）
     """
-    queryset = Task.objects.select_related('publisher', 'worker')
+    queryset = Task.objects.select_related('publisher', 'worker').prefetch_related('reviews')
     serializer_class = TaskDetailSerializer
 
 
@@ -526,7 +527,7 @@ class MyTaskListView(generics.ListAPIView):
         if task_status:
             qs = qs.filter(status=task_status)
             
-        return qs.select_related('publisher', 'worker').order_by('-created_at')
+        return qs.select_related('publisher', 'worker').prefetch_related('reviews').order_by('-created_at')
 
 
 class TaskUpdateView(generics.UpdateAPIView):
@@ -931,6 +932,26 @@ class NotificationReadAllView(APIView):
 # 评价与雷达图模块
 # ─────────────────────────────────────────────────────────────────────────────
 
+from rest_framework.pagination import PageNumberPagination
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class ReviewListView(generics.ListAPIView):
+    """
+    GET /api/reviews/received/
+    获取当前用户收到的所有评价，支持分页
+    """
+    serializer_class = ReviewSerializer
+    pagination_class = StandardResultsSetPagination
+    
+    def get_queryset(self):
+        from .models import Review
+        return Review.objects.filter(reviewee=self.request.user).select_related('reviewer', 'task').order_by('-created_at')
+
+
 class ReviewCreateView(APIView):
     """
     POST /api/reviews/
@@ -1011,8 +1032,8 @@ class UserRadarView(APIView):
             'reliability': round(aggs['avg_reliability'] or 5.0, 1),
         }
 
-        # 获取前 20 条评价列表
-        reviews = Review.objects.filter(reviewee=user).select_related('reviewer').order_by('-created_at')[:20]
+        # 限制预览，仅获取最新 2 条评价列表供在个人资料页占位展示（更多由 my_reviews 提供）
+        reviews = Review.objects.filter(reviewee=user).select_related('reviewer').order_by('-created_at')[:2]
         review_list = ReviewSerializer(reviews, many=True).data
 
         return Response({

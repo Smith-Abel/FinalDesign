@@ -71,6 +71,31 @@
     </view>
   </view>
 
+  <!-- ③.6 个人收到的评价 -->
+  <view class="section card">
+    <view class="section-header" style="margin-bottom: 16rpx;">
+      <view class="section-title" style="margin-bottom: 0;">我收到的评价 <text style="font-size: 24rpx; color: #999; font-weight: normal; margin-left: 10rpx;">共 {{totalReviews}} 条</text></view>
+      <view class="section-more" bindtap="goToMyReviews" wx:if="{{totalReviews > 0}}">全部 ›</view>
+    </view>
+    <view class="review-list" wx:if="{{reviews.length > 0}}">
+      <view class="review-item" wx:for="{{reviews}}" wx:key="id">
+        <image class="review-avatar" src="{{item.reviewer_avatar}}" wx:if="{{item.reviewer_avatar}}" />
+        <view class="review-avatar-placeholder" wx:else>{{item.reviewer_name[0]}}</view>
+        <view class="review-content">
+          <view class="review-header">
+            <text class="review-name">{{item.reviewer_name}}</text>
+            <text class="review-date">{{item.created_date}}</text>
+          </view>
+          <view class="review-text" wx:if="{{item.comment}}">{{item.comment}}</view>
+          <view class="review-text empty-comment" wx:else>该用户没有留下文字评价</view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-state" wx:else>
+      <text class="empty-text">暂无评价记录</text>
+    </view>
+  </view>
+
   <!-- ④ 工具菜单 -->
   <view class="section card">
     <view class="section-title">我的工具</view>

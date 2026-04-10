@@ -75,7 +75,8 @@ class TaskListSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
-        return obj.reviews.filter(reviewer=request.user).exists()
+        # 通过 all() 在内存中遍历以利用 prefetch_related，消除 N+1 查询
+        return any(r.reviewer_id == request.user.id for r in obj.reviews.all())
 
 
 class TaskDetailSerializer(serializers.ModelSerializer):
@@ -83,6 +84,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
     publisher = UserSerializer(read_only=True)
     worker = UserSerializer(read_only=True)
     is_reviewed = serializers.SerializerMethodField()
+    partner_review = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -90,7 +92,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             'id', 'category', 'target_college', 'title', 'content', 'tags',
             'reward_amount', 'status', 'publisher', 'worker',
             'latitude', 'longitude', 'location_name', 'images',
-            'created_at', 'updated_at', 'is_reviewed',
+            'created_at', 'updated_at', 'is_reviewed', 'partner_review'
         ]
         read_only_fields = ['id', 'status', 'publisher', 'worker', 'created_at', 'updated_at']
 
@@ -98,7 +100,29 @@ class TaskDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
-        return obj.reviews.filter(reviewer=request.user).exists()
+        return any(r.reviewer_id == request.user.id for r in obj.reviews.all())
+
+    def get_partner_review(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        
+        partner = None
+        if request.user == obj.publisher:
+            partner = obj.worker
+        elif request.user == obj.worker:
+            partner = obj.publisher
+        
+        if not partner:
+            return None
+            
+        import sys
+        ReviewSerializer = sys.modules[__name__].ReviewSerializer
+        # 通过内存遍历解决 N+1 问题
+        for review in obj.reviews.all():
+            if review.reviewer_id == partner.id and review.reviewee_id == request.user.id:
+                return ReviewSerializer(review).data
+        return None
 
 
 class TaskCreateSerializer(serializers.ModelSerializer):

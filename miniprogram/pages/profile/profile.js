@@ -19,6 +19,8 @@ Page({
         showEditModal: false,
         radarData: null,
         radarImg: '',
+        reviews: [],
+        totalReviews: 0,
     },
 
     async onShow() {
@@ -55,7 +57,15 @@ Page({
     async _loadRadarData(userId) {
         try {
             const res = await request.get(`/api/users/${userId}/radar/`)
-            this.setData({ radarData: res.radar })
+            const formattedReviews = (res.reviews || []).map(r => ({
+                ...r,
+                created_date: r.created_at ? r.created_at.substring(0, 10).replace(/-/g, '/') : ''
+            }))
+            this.setData({ 
+                radarData: res.radar,
+                reviews: formattedReviews,
+                totalReviews: res.total_reviews || 0
+            })
             this.drawRadar(res.radar)
         } catch (err) {
             console.error('Failed to load radar data', err)
@@ -294,6 +304,10 @@ Page({
 
     goToSettings() {
         wx.navigateTo({ url: '/pages/settings/settings' })
+    },
+
+    goToMyReviews() {
+        wx.navigateTo({ url: '/pages/my-reviews/my-reviews' })
     },
 
     handleLogout() {
