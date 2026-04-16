@@ -155,11 +155,14 @@ class AdminTaskListView(generics.ListAPIView):
             qs = qs.filter(status=status_val)
             
         is_hidden = self.request.query_params.get('is_hidden')
-        if is_hidden is not None and is_hidden != '':
+        if is_hidden is None:
+            # 默认：仅展示未隐藏（未下架）的任务
+            qs = qs.filter(is_hidden=False)
+        elif is_hidden != '':
             is_hidden_bool = is_hidden.lower() == 'true'
             qs = qs.filter(is_hidden=is_hidden_bool)
             
-        # 排序 (默认按时间倒序)
+        # 排序 (默认按时间倒序：最新发布在前)
         ordering = self.request.query_params.get('ordering', '-created_at')
         return qs.order_by(ordering)
 

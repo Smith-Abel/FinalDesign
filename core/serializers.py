@@ -61,6 +61,7 @@ class TaskListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'category', 'target_college', 'title', 'tags',
             'reward_amount', 'status', 'publisher_name', 'publisher_avatar', 'created_at', 'cover_image', 'is_reviewed',
+            'is_hidden',
         ]
 
     def get_cover_image(self, obj):
@@ -91,7 +92,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'category', 'target_college', 'title', 'content', 'tags',
             'reward_amount', 'status', 'publisher', 'worker',
-            'latitude', 'longitude', 'location_name', 'images',
+            'latitude', 'longitude', 'location_name', 'images', 'is_hidden',
             'created_at', 'updated_at', 'is_reviewed', 'partner_review'
         ]
         read_only_fields = ['id', 'status', 'publisher', 'worker', 'created_at', 'updated_at']

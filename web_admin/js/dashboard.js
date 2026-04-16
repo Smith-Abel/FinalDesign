@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 各视图本地状态（保持筛选条件 / 页码 / 排序信息）
     const viewState = {
         users: { page: 1, q: '', is_active: '', ordering: '-date_joined' },
-        tasks: { page: 1, q: '', searchMode: 'content', category: '', status: '', is_hidden: '', ordering: '-created_at' },
+        tasks: { page: 1, q: '', searchMode: 'content', category: '', status: '', is_hidden: 'false', ordering: '-created_at' },
         verifies: { status: '', q: '', college: '' },
         reports: { status: '', q: '' },
         audits: { page: 1, q: '' }
@@ -444,7 +444,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window._taskCache = window._taskCache || {};
         tasks.forEach(t => { window._taskCache[t.id] = t; });
 
-        const statMap = { 'OPEN': '未接单', 'IN_PROGRESS': '进行中', 'PENDING_CONFIRM': '待确认', 'COMPLETED': '已完成', 'CANCELLED': '已取消' };
+        const statMap = { 'OPEN': '未接单', 'PENDING_ACCEPT': '待接受', 'IN_PROGRESS': '进行中', 'PENDING_CONFIRM': '待确认', 'COMPLETED': '已完成', 'CANCELLED': '已取消' };
+        const catMap = { 'STUDY': '学业指导', 'TRADE': '物品交易', 'HELP': '生活协助' };
 
         const tableRows = tasks.length
             ? tasks.map(t => `
@@ -454,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="task-title-link" onclick="showTaskDetail(${t.id})" title="${t.title}">
                             ${t.title}
                         </button>
-                        <br/><small style="color:#999">${t.category}</small>
+                        <br/><small style="color:#999">${catMap[t.category] || t.category}</small>
                     </td>
                     <td>${t.reward_amount} 积分</td>
                     <td><span class="status-badge">${statMap[t.status] || t.status}</span></td>
@@ -485,12 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
                 <select id="taskCatSelect" class="search-input" style="width: auto; min-width: 120px;">
                     <option value="">全部分类</option>
-                    <option value="帮我跑腿" ${state.category === '帮我跑腿' ? 'selected' : ''}>帮我跑腿</option>
-                    <option value="快递代取" ${state.category === '快递代取' ? 'selected' : ''}>快递代取</option>
-                    <option value="作业辅导" ${state.category === '作业辅导' ? 'selected' : ''}>作业辅导</option>
-                    <option value="技术维修" ${state.category === '技术维修' ? 'selected' : ''}>技术维修</option>
-                    <option value="陪伴倾诉" ${state.category === '陪伴倾诉' ? 'selected' : ''}>陪伴倾诉</option>
-                    <option value="其他" ${state.category === '其他' ? 'selected' : ''}>其他</option>
+                    <option value="STUDY" ${state.category === 'STUDY' ? 'selected' : ''}>学业指导</option>
+                    <option value="TRADE" ${state.category === 'TRADE' ? 'selected' : ''}>物品交易</option>
+                    <option value="HELP" ${state.category === 'HELP' ? 'selected' : ''}>生活协助</option>
                 </select>
                 <select id="taskStatusSelect" class="search-input" style="width: auto; min-width: 120px;">
                     <option value="">所有进度</option>
@@ -571,8 +569,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const statMap = { 'OPEN': '未接单', 'IN_PROGRESS': '进行中', 'PENDING_CONFIRM': '待确认', 'COMPLETED': '已完成', 'CANCELLED': '已取消' };
-        const catEmoji = { '帮我跑腿': '🏃', '快递代取': '📦', '作业辅导': '📚', '技术维修': '🔧', '陪伴倾诉': '💬', '其他': '✨' };
+        const statMap = { 'OPEN': '未接单', 'PENDING_ACCEPT': '待接受', 'IN_PROGRESS': '进行中', 'PENDING_CONFIRM': '待确认', 'COMPLETED': '已完成', 'CANCELLED': '已取消' };
+        const catEmoji = { 'STUDY': '📚', 'TRADE': '📦', 'HELP': '🙋', '其他': '✨' };
+        const catMap = { 'STUDY': '学业指导', 'TRADE': '物品交易', 'HELP': '生活协助' };
 
         const images = Array.isArray(task.images) ? task.images : [];
         const galleryHtml = images.length
@@ -605,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="task-modal" onclick="event.stopPropagation()">
                     <div class="task-modal-header">
                         <div>
-                            <span class="task-modal-category">${catEmoji[task.category] || '📋'} ${task.category}</span>
+                            <span class="task-modal-category">${catEmoji[task.category] || '📋'} ${catMap[task.category] || task.category}</span>
                             <h2 class="task-modal-title">${task.title}</h2>
                         </div>
                         <button class="task-modal-close" onclick="closeTaskModal()">✕</button>

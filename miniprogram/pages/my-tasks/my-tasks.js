@@ -17,17 +17,30 @@ const STATUS_MAP = {
 }
 
 function formatTask(t, role) {
-    const st = STATUS_MAP[t.status] || {}
     const isPublisher = role === 'publisher';
     const isWorker = role === 'worker';
+    
+    let statusLabel = '';
+    let statusClass = 'badge';
+    
+    // 优先判断是否被下架（风控/管理操作）
+    if (t.is_hidden) {
+        statusLabel = '已屏蔽/下架';
+        statusClass = 'badge badge-cancel';
+    } else {
+        const st = STATUS_MAP[t.status] || {}
+        statusLabel = st.label || t.status;
+        statusClass = st.cls || 'badge';
+    }
+
     return {
         ...t,
-        statusLabel: st.label || t.status,
-        statusClass: st.cls || 'badge',
-        canEdit: t.status === 'OPEN' && isPublisher,       
-        canCancel: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && isPublisher,
-        canConfirm: (t.status === 'PENDING_CONFIRM' || t.status === 'IN_PROGRESS') && isPublisher,
-        canRequestComplete: t.status === 'IN_PROGRESS' && isWorker,
+        statusLabel,
+        statusClass,
+        canEdit: t.status === 'OPEN' && isPublisher && !t.is_hidden,       
+        canCancel: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && isPublisher && !t.is_hidden,
+        canConfirm: (t.status === 'PENDING_CONFIRM' || t.status === 'IN_PROGRESS') && isPublisher && !t.is_hidden,
+        canRequestComplete: t.status === 'IN_PROGRESS' && isWorker && !t.is_hidden,
         canReview: t.status === 'COMPLETED' && !t.is_reviewed,
     }
 }
